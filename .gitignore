@@ -1,1 +1,33 @@
+# dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# testing
+coverage/
+
+# next.js build outputs and caches
+.next/
+out/
+
+# production build
+build/
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local environment files containing credentials/secrets
+.env
+.env.local
+.env*.local
+
+# Firebase credentials and service accounts (DO NOT COMMIT PRIVATE KEYS)
+*-adminsdk-*.json
+flower-c41bd-firebase-adminsdk-fbsvc-18d9a7cbfe.json
+
+# OS files
+.DS_Store
+Thumbs.db
