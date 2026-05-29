@@ -1,0 +1,808 @@
+'use client';
+
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
+import { logOut } from '../../lib/auth';
+
+const FLOWERS = [
+  { id: 'rose',           name: 'Rose',           file: 'rose.png',           category: 'primary' },
+  { id: 'sunflower',      name: 'Sunflower',       file: 'sunflower.png',      category: 'primary' },
+  { id: 'penoy',          name: 'Peony',           file: 'penoy.png',          category: 'primary' },
+  { id: 'lilly',          name: 'Lily',            file: 'lilly.png',          category: 'primary' },
+  { id: 'pink_tulip',     name: 'Tulip (Pink)',    file: 'pink_tulip.png',     category: 'secondary' },
+  { id: 'tulip_white',    name: 'Tulip (White)',   file: 'tulip_white.png',    category: 'secondary' },
+  { id: 'yellow_tulip',   name: 'Tulip (Yellow)',  file: 'yellow_tulip.png',   category: 'secondary' },
+  { id: 'carnation_red',  name: 'Carnation (Red)', file: 'carnation_red.png',  category: 'secondary' },
+  { id: 'carnation_pink', name: 'Carnation (Pink)',file: 'carnation_pink.png', category: 'secondary' },
+  { id: 'carnation_yellow',name:'Carnation (Ylw)', file: 'carnation_yellow.png',category:'secondary'},
+  { id: 'gergebra_orange',name: 'Gerbera (Org)',  file: 'gergebra_orange.png', category: 'secondary' },
+  { id: 'gergebra_pink',  name: 'Gerbera (Pink)', file: 'gergebra_pink.png',   category: 'secondary' },
+  { id: 'gergebra_white', name: 'Gerbera (Wht)',  file: 'gergebra_white.png',  category: 'secondary' },
+  { id: 'gergebra_yellow',name: 'Gerbera (Ylw)',  file: 'gergebra_yellow.png', category: 'secondary' },
+  { id: 'hydrarenga',     name: 'Hydrangea',       file: 'hydrarenga.png',     category: 'secondary' },
+  { id: 'white',          name: 'White Flower',    file: 'white.png',          category: 'secondary' },
+  { id: 'babys_breath',   name: "Baby's Breath",   file: 'babys_breath.png',   category: 'filler' },
+  { id: 'eucaluptus',     name: 'Eucalyptus',      file: 'eucaluptus.png',     category: 'filler' },
+];
+
+// ─────────────────────────────────────────────
+// LAYER SYSTEM (back → front)
+//  0  : greenery1-5  — large BG foliage, always auto-placed
+//  1  : fern/eucalyptus/ruscus/babys_breath — seam fillers, always auto-placed
+//  2-3: secondary flowers — mid-cluster dome
+//  4-5: primary flowers  — focal points only
+// ─────────────────────────────────────────────
+
+const BASE_SIZE = 200; // base px for flowers
+const BG_SIZE   = 320; // base px for greenery background images
+
+// ── The 5 large greenery bg images (always auto-injected)
+const BG_GREENERY = [
+  { id: 'bg1', name: 'Greenery', file: 'greenery1.png', category: '_bg' },
+  { id: 'bg2', name: 'Greenery', file: 'greenery2.png', category: '_bg' },
+  { id: 'bg3', name: 'Greenery', file: 'greenery3.png', category: '_bg' },
+  { id: 'bg4', name: 'Greenery', file: 'greenery4.png', category: '_bg' },
+  { id: 'bg5', name: 'Greenery', file: 'greenery5.png', category: '_bg' },
+];
+
+// ── The 2 seam-filler plants (auto-injected based on flower type)
+const SEAM_FILLERS = [
+  { id: 'eucaluptus', name: 'Eucalyptus',     file: 'eucaluptus.png',  category: '_seam' },
+  { id: 'babys_breath',name:"Baby's Breath",  file: 'babys_breath.png',category: '_seam' },
+];
+
+// Canvas: 560w × 640h
+// Layer 0 – single BG greenery image, centred and filling the canvas
+const BG_ANCHOR = { x: 280, y: 360, scale: 1.55, rotation: 0, layer: 0 };
+
+// Layer 1 – seam fillers: bridge between large greenery and flowers
+const SEAM_ANCHORS = [
+  { x: 280, y: 290, scale: 1.05, rotation:   2, layer: 1 }, // center
+  { x: 180, y: 300, scale: 0.95, rotation: -22, layer: 1 }, // left
+  { x: 380, y: 300, scale: 0.95, rotation:  22, layer: 1 }, // right
+  { x: 120, y: 270, scale: 0.88, rotation: -42, layer: 1 }, // outer left
+  { x: 440, y: 270, scale: 0.88, rotation:  42, layer: 1 }, // outer right
+  { x: 230, y: 230, scale: 0.82, rotation: -15, layer: 1 }, // upper left
+  { x: 330, y: 230, scale: 0.82, rotation:  15, layer: 1 }, // upper right
+  { x: 280, y: 210, scale: 0.78, rotation:   5, layer: 1 }, // top center
+];
+
+// Layer 2-3 – secondary flowers: tight dome
+const SECONDARY_ANCHORS = [
+  { x: 280, y: 240, scale: 0.98, rotation:   0, layer: 3 },
+  { x: 200, y: 265, scale: 0.92, rotation: -16, layer: 2 },
+  { x: 360, y: 265, scale: 0.92, rotation:  16, layer: 2 },
+  { x: 235, y: 205, scale: 0.88, rotation: -10, layer: 3 },
+  { x: 325, y: 205, scale: 0.88, rotation:  10, layer: 3 },
+  { x: 155, y: 300, scale: 0.84, rotation: -26, layer: 2 },
+  { x: 405, y: 300, scale: 0.84, rotation:  26, layer: 2 },
+  { x: 280, y: 310, scale: 0.90, rotation:   4, layer: 3 },
+  { x: 210, y: 165, scale: 0.80, rotation: -18, layer: 2 },
+  { x: 350, y: 165, scale: 0.80, rotation:  18, layer: 2 },
+];
+
+// Layer 4-5 – primary flowers: only key focal positions
+const PRIMARY_ANCHORS = [
+  { x: 280, y: 218, scale: 1.10, rotation:   0, layer: 5 }, // center hero
+  { x: 195, y: 252, scale: 1.00, rotation: -12, layer: 4 }, // left focal
+  { x: 365, y: 252, scale: 1.00, rotation:  12, layer: 4 }, // right focal
+  { x: 280, y: 305, scale: 0.95, rotation:   3, layer: 4 }, // lower center
+  { x: 225, y: 172, scale: 0.90, rotation: -20, layer: 4 }, // upper left
+  { x: 335, y: 172, scale: 0.90, rotation:  20, layer: 4 }, // upper right
+];
+
+function jitter(anchor, jx = 18, jy = 14, jr = 10, js = 0.06) {
+  return {
+    x: anchor.x + (Math.random() - 0.5) * jx,
+    y: anchor.y + (Math.random() - 0.5) * jy,
+    rotation: anchor.rotation + (Math.random() - 0.5) * jr,
+    scale: Math.max(0.7, anchor.scale + (Math.random() - 0.5) * js),
+    layer: anchor.layer,
+  };
+}
+
+// bgFile: filename like 'greenery1.png' — which single bg image to use
+function generateArrangement(selectedFlowers, bgFile = 'greenery1.png') {
+  const result = [];
+  const ts = Date.now();
+
+  // ── LAYER 0: single large background greenery image
+  const bgJitter = jitter(BG_ANCHOR, 10, 8, 4, 0.05);
+  result.push({
+    id: `bg-0-${ts}`,
+    flower: { id: 'bg', name: 'Greenery', file: bgFile, category: '_bg' },
+    ...bgJitter,
+    isBg: true,
+  });
+
+  // ── LAYER 1: always place seam fillers (choose based on primary flowers)
+  let usesRomanticFiller = selectedFlowers.some(f => ['rose', 'penoy', 'carnation_red', 'carnation_pink', 'pink_tulip'].includes(f.flower.id));
+  let chosenFiller = usesRomanticFiller ? SEAM_FILLERS.find(f => f.id === 'babys_breath') : SEAM_FILLERS.find(f => f.id === 'eucaluptus');
+
+  const seamAnchors = [...SEAM_ANCHORS].sort(() => Math.random() - 0.5);
+  seamAnchors.forEach((a, i) => {
+    const j = jitter(a, 16, 12, 12, 0.07);
+    result.push({ id: `seam-${i}-${ts}`, flower: chosenFiller, ...j, isSeam: true });
+  });
+
+  // ── LAYERS 2-5: user-selected flowers sorted by category
+  const primaries   = [];
+  const secondaries = [];
+  selectedFlowers.forEach(({ flower, count }) => {
+    if (flower.category === 'filler') return; // auto-handled by seam layer
+    for (let i = 0; i < count; i++) {
+      if (flower.category === 'primary') primaries.push(flower);
+      else secondaries.push(flower);
+    }
+  });
+
+  const secAnchors = [...SECONDARY_ANCHORS].sort(() => Math.random() - 0.5);
+  secondaries.forEach((flower, i) => {
+    const a = secAnchors[i % secAnchors.length];
+    result.push({ id: `sec-${flower.id}-${i}-${ts}`, flower, ...jitter(a, 20, 16, 12, 0.07) });
+  });
+
+  const priAnchors = [...PRIMARY_ANCHORS].sort(() => Math.random() - 0.5);
+  primaries.slice(0, PRIMARY_ANCHORS.length).forEach((flower, i) => {
+    result.push({ id: `pri-${flower.id}-${i}-${ts}`, flower, ...jitter(priAnchors[i], 14, 10, 8, 0.05) });
+  });
+
+  return result;
+}
+
+const BASE_FLOWER_SIZE = BASE_SIZE;
+
+export default function BuilderPage() {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [selectedFlowers, setSelectedFlowers] = useState([]);
+  const [arranged, setArranged] = useState([]);
+  const [activeFlower, setActiveFlower] = useState(null);
+  const [filterCat, setFilterCat] = useState('all');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedGreenery, setSelectedGreenery] = useState('greenery1.png');
+  const [noteText, setNoteText] = useState('');
+  const [noteRecipient, setNoteRecipient] = useState('Beloved');
+  const [noteSender, setNoteSender] = useState('Secret Admirer');
+  const [polaroidImage, setPolaroidImage] = useState(null);
+  const [currentStep, setCurrentStep] = useState('arrange');
+  const canvasRef = useRef(null);
+  const dragRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => setPolaroidImage(event.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (!u) router.replace('/');
+      else { setUser(u); setCheckingAuth(false); }
+    });
+    return () => unsub();
+  }, [router]);
+
+  const addFlower = (flower) => {
+    setSelectedFlowers((prev) => {
+      const totalCount = prev.reduce((acc, curr) => acc + curr.count, 0);
+      if (totalCount >= 15) {
+        alert("Maximum of 15 flowers reached for the sweet spot!");
+        return prev;
+      }
+      const existing = prev.find((f) => f.flower.id === flower.id);
+      if (existing) return prev.map((f) => f.flower.id === flower.id ? { ...f, count: f.count + 1 } : f);
+      return [...prev, { flower, count: 1 }];
+    });
+  };
+
+  const removeFlowerFromSelection = (flowerId) => {
+    setSelectedFlowers((prev) => {
+      const existing = prev.find((f) => f.flower.id === flowerId);
+      if (!existing) return prev;
+      if (existing.count <= 1) return prev.filter((f) => f.flower.id !== flowerId);
+      return prev.map((f) => f.flower.id === flowerId ? { ...f, count: f.count - 1 } : f);
+    });
+  };
+
+  const autoArrange = useCallback(() => {
+    const totalCount = selectedFlowers.reduce((acc, curr) => acc + curr.count, 0);
+    if (totalCount < 5) {
+      alert("Please select at least 5 flowers for a beautiful arrangement.");
+      return;
+    }
+    setArranged(generateArrangement(selectedFlowers, selectedGreenery));
+    setActiveFlower(null);
+  }, [selectedFlowers, selectedGreenery]);
+
+  const shuffleArrangement = () => {
+    if (arranged.length === 0) return;
+    // Re-run arrangement with same greenery but fresh random jitter on flower positions
+    setArranged(generateArrangement(selectedFlowers, selectedGreenery));
+    setActiveFlower(null);
+  };
+
+  // When user picks a different greenery, swap only the bg item in-place
+  const changeGreenery = (file) => {
+    setSelectedGreenery(file);
+    setArranged((prev) =>
+      prev.map((item) =>
+        item.isBg
+          ? { ...item, flower: { id: 'bg', name: 'Greenery', file, category: '_bg' } }
+          : item
+      )
+    );
+  };
+
+  const deleteActive = () => {
+    if (!activeFlower) return;
+    setArranged((prev) => prev.filter((f) => f.id !== activeFlower));
+    setActiveFlower(null);
+  };
+
+  const rotateActive = (deg) => {
+    if (!activeFlower) return;
+    setArranged((prev) => prev.map((f) => f.id === activeFlower ? { ...f, rotation: f.rotation + deg } : f));
+  };
+
+  const resizeActive = (delta) => {
+    if (!activeFlower) return;
+    setArranged((prev) => prev.map((f) =>
+      f.id === activeFlower ? { ...f, scale: Math.max(0.2, Math.min(1.4, f.scale + delta)) } : f
+    ));
+  };
+
+  const moveLayer = (direction) => {
+    if (!activeFlower) return;
+    setArranged((prev) => prev.map((f) =>
+      f.id === activeFlower ? { ...f, layer: f.layer + direction } : f
+    ));
+  };
+
+  const clearAll = () => { setArranged([]); setSelectedFlowers([]); setActiveFlower(null); };
+
+  const exportPNG = async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 560; canvas.height = 640;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f9f0dc';
+    ctx.fillRect(0, 0, 560, 640);
+
+    const sorted = [...arranged].sort((a, b) => a.layer - b.layer);
+
+    const loadImage = (src) => new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+
+    try {
+      if (arranged.length > 0) {
+        const bgImg = await loadImage('/flowers/bg_abstract.png');
+        ctx.save();
+        ctx.translate(280, 320);
+        ctx.globalAlpha = 0.5;
+        const size = 2200;
+
+        ctx.drawImage(
+          bgImg,
+          -size / 2,
+          -size / 2,
+          size,
+          size
+        );
+        ctx.restore();
+      }
+
+      const flowerImages = await Promise.all(
+        sorted.map(item => loadImage(`/flowers/${item.flower.file}`))
+      );
+
+      sorted.forEach((item, index) => {
+        const img = flowerImages[index];
+        ctx.save();
+        ctx.translate(item.x, item.y);
+        ctx.rotate((item.rotation * Math.PI) / 180);
+        const sz = BASE_FLOWER_SIZE * item.scale;
+        ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
+        ctx.restore();
+      });
+
+      if (noteText) {
+        ctx.save();
+        ctx.translate(20, 480);
+        ctx.rotate((-4 * Math.PI) / 180);
+        
+        ctx.fillStyle = '#fdf6e3';
+        ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 8;
+        ctx.fillRect(0, 0, 220, 130);
+        
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#e0d5c1'; ctx.lineWidth = 1; ctx.strokeRect(0, 0, 220, 130);
+        
+        ctx.fillStyle = '#5c4d3c';
+        ctx.font = 'bold 13px Courier New';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`Dear ${noteRecipient},`, 16, 16);
+        
+        ctx.font = '12px Courier New';
+        const lines = noteText.split('\n');
+        lines.slice(0, 4).forEach((line, i) => {
+          ctx.fillText(line, 16, 40 + (i * 16));
+        });
+
+        ctx.font = 'bold 12px Courier New';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Sincerely, ${noteSender}`, 204, 104);
+        ctx.restore();
+      }
+
+      if (polaroidImage) {
+        const pImg = await loadImage(polaroidImage);
+        ctx.save();
+        ctx.translate(380, 460);
+        ctx.rotate((8 * Math.PI) / 180);
+        
+        ctx.fillStyle = 'white';
+        ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
+        ctx.fillRect(0, 0, 160, 190);
+        
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(12, 12, 136, 136);
+        ctx.filter = 'sepia(20%) contrast(105%) brightness(105%) saturate(90%) hue-rotate(-5deg)';
+        ctx.drawImage(pImg, 12, 12, 136, 136);
+        ctx.filter = 'none';
+        
+        ctx.restore();
+      }
+
+      download(canvas);
+    } catch (e) {
+      console.error("Export failed", e);
+    }
+  };
+
+  const download = (canvas) => {
+    const a = document.createElement('a');
+    a.download = 'my-bouquet.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+
+  const handleSignOut = async () => { await logOut(); router.replace('/'); };
+
+  const filteredFlowers = filterCat === 'all' ? FLOWERS : FLOWERS.filter((f) => f.category === filterCat);
+
+  if (checkingAuth) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span className="font-typewriter text-sepia" style={{ fontSize: '0.8rem', letterSpacing: '3px' }}>Opening the Atelier…</span>
+    </div>
+  );
+
+  if (currentStep === 'personalize') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+        <div style={{ padding: '40px 0 20px' }}>
+          <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 60, objectFit: 'contain' }} />
+        </div>
+        
+        <div className="font-typewriter" style={{ fontSize: '1rem', letterSpacing: '4px', margin: '0 0 40px 0', color: 'var(--ink-brown)', fontWeight: 'bold' }}>
+          WRITE THE CARD
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 60, flex: 1, width: '100%', maxWidth: 1100 }}>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', opacity: 0.9 }}>
+             <img src="/flowers/lilly.png" style={{ height: 300, objectFit: 'contain' }} alt="Decoration" />
+          </div>
+          
+          <div style={{ border: '2px solid black', background: 'white', padding: '40px', width: 420, minHeight: 400, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+               <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Dear </div>
+               <input 
+                 value={noteRecipient} 
+                 onChange={e => setNoteRecipient(e.target.value)} 
+                 style={{ border: 'none', borderBottom: '1px dashed #ccc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#888', marginLeft: 8, flex: 1, background: 'transparent' }}
+               />
+               <span className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>,</span>
+             </div>
+             <textarea 
+               value={noteText} onChange={e => setNoteText(e.target.value)}
+               maxLength={120}
+               style={{ flex: 1, border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.1rem', color: '#555', lineHeight: 1.8 }}
+               placeholder="I have so much to tell you, but only this much space on this card! Still, you must know..."
+             />
+             <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'right', marginTop: 20 }}>Sincerely,</div>
+             <input 
+               value={noteSender} 
+               onChange={e => setNoteSender(e.target.value)}
+               style={{ border: 'none', borderBottom: '1px dashed #ccc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#888', textAlign: 'right', background: 'transparent', width: '100%', marginTop: 4 }}
+             />
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
+            <img src="/flowers/sunflower.png" style={{ height: 240, objectFit: 'contain', opacity: 0.9 }} alt="Decoration" />
+            
+            <div style={{ textAlign: 'center', width: '100%', maxWidth: 200, paddingLeft: 20 }}>
+              {!polaroidImage ? (
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '1px solid black', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', background: 'white' }}>
+                  <span>📷 Add Polaroid</span>
+                  <input type="file" accept="image/png, image/jpeg" onChange={handleImageUpload} style={{ display: 'none' }} />
+                </label>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <div style={{ background: 'white', padding: '8px 8px 24px 8px', border: '1px solid #ddd', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                    <img src={polaroidImage} alt="Uploaded Polaroid" style={{ width: 140, height: 140, objectFit: 'cover', filter: 'sepia(0.2) contrast(1.05) brightness(1.05) saturate(0.9) hue-rotate(-5deg)' }} />
+                  </div>
+                  <button onClick={() => setPolaroidImage(null)} style={{ color: 'var(--postal-red)', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', marginTop: 4 }}>
+                    ✕ Remove Photo
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 16, padding: '40px 0 60px' }}>
+          <button onClick={() => setCurrentStep('arrange')} style={{ border: '1px solid black', background: 'transparent', padding: '10px 32px', fontFamily: 'var(--font-typewriter)', cursor: 'pointer', letterSpacing: '2px' }}>BACK</button>
+          <button onClick={() => setCurrentStep('review')} style={{ border: '1px solid black', background: 'black', color: 'white', padding: '10px 32px', fontFamily: 'var(--font-typewriter)', cursor: 'pointer', letterSpacing: '2px' }}>NEXT</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'review') {
+    return (
+       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--parchment-bg)', padding: '40px 0' }}>
+          <div className="font-script" style={{ fontSize: '3rem', marginBottom: '24px', color: 'var(--ink-black)' }}>Review Your Bouquet</div>
+          
+          <div style={{ position: 'relative', width: 560, height: 640, background: '#f9f0dc', border: '1px solid var(--parchment-deep)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+            {[...arranged].sort((a, b) => a.layer - b.layer).map(item => (
+                <div
+                key={item.id}
+                style={{
+                  position: 'absolute', left: item.x - (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale / 2, top: item.y - (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale / 2,
+                  width: (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale, height: (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale,
+                  zIndex: item.layer, transform: `rotate(${item.rotation}deg)`, pointerEvents: 'none'
+                }}
+              >
+                <img src={`/flowers/${item.flower.file}`} alt={item.flower.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
+            ))}
+
+            {noteText && arranged.length > 0 && (
+              <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))', pointerEvents: 'none' }}>
+                <div style={{ background: '#fdf6e3', width: 220, height: 130, padding: 16, border: '1px solid #e0d5c1', position: 'relative', overflow: 'hidden' }}>
+                  <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#5c4d3c', fontWeight: 'bold', marginBottom: 8 }}>Dear {noteRecipient},</div>
+                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
+                    {noteText.split('\n').slice(0, 4).join('\n')}
+                  </div>
+                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', fontWeight: 'bold', marginTop: 8, textAlign: 'right' }}>Sincerely, {noteSender}</div>
+                </div>
+              </div>
+            )}
+
+            {polaroidImage && arranged.length > 0 && (
+              <div style={{ position: 'absolute', bottom: 30, right: 20, zIndex: 101, transform: 'rotate(8deg)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.25))', pointerEvents: 'none' }}>
+                <div style={{ background: 'white', width: 160, height: 190, padding: '12px 12px 40px 12px', position: 'relative' }}>
+                  <img src={polaroidImage} alt="Polaroid" style={{ width: '100%', height: 136, objectFit: 'cover', background: '#e0e0e0', display: 'block', filter: 'sepia(0.2) contrast(1.05) brightness(1.05) saturate(0.9) hue-rotate(-5deg)' }} />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', gap: 16, marginTop: 32 }}>
+            <button className="control-btn" onClick={() => setCurrentStep('personalize')} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px' }}>
+               Back to Card
+            </button>
+            <button className="btn-primary" onClick={exportPNG} style={{ padding: '12px 32px', fontSize: '1rem', letterSpacing: '1px' }}>
+              <span className="icon">📥</span> Export Final Bouquet
+            </button>
+          </div>
+       </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateRows: '52px 1fr', height: '100vh', overflow: 'hidden' }}>
+      {/* TOP BAR */}
+      <div className="builder-topbar" style={{ gridColumn: '1 / -1' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 32, objectFit: 'contain' }} />
+        </div>
+        <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span className="font-typewriter" style={{ fontSize: '0.65rem', color: 'var(--parchment-deep)', letterSpacing: '1px' }}>
+            {user?.displayName || user?.email}
+          </span>
+          <button onClick={handleSignOut} className="btn-secondary" style={{ fontSize: '0.65rem', padding: '6px 14px', color: 'var(--parchment-light)', borderColor: 'rgba(255,255,255,0.2)' }}>
+            Depart
+          </button>
+        </div>
+      </div>
+
+      {/* TWO-PANEL + CANVAS LAYOUT */}
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 260px', overflow: 'hidden' }}>
+
+        {/* ── LEFT: FLOWER INVENTORY ── */}
+        <div style={{ background: 'var(--parchment-light)', borderRight: '1px solid var(--parchment-deep)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Custom Filter Dropdown */}
+          <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid var(--parchment-deep)', position: 'relative' }}>
+            <div 
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              style={{
+                width: '100%', padding: '8px 12px', fontSize: '0.7rem',
+                fontFamily: 'var(--font-typewriter)', textTransform: 'uppercase',
+                letterSpacing: '1px', color: 'var(--sepia)',
+                background: 'rgba(255,255,255,0.4)', border: '1px solid var(--parchment-deep)',
+                borderRadius: 4, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+              <span>{filterCat === 'all' ? 'All Flowers' : filterCat}</span>
+              <span style={{ fontSize: '0.5rem', transform: dropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+            </div>
+            
+            {dropdownOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% - 6px)', left: 16, right: 16, zIndex: 100,
+                background: 'var(--parchment-light)', border: '1px solid var(--parchment-deep)',
+                borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden'
+              }}>
+                {['all','primary','secondary','filler'].map((cat) => (
+                  <div key={cat}
+                    onClick={() => { setFilterCat(cat); setDropdownOpen(false); }}
+                    className={`dropdown-option ${filterCat === cat ? 'active' : ''}`}
+                    style={{
+                      padding: '10px 12px', fontSize: '0.7rem', fontFamily: 'var(--font-typewriter)',
+                      textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer',
+                      background: filterCat === cat ? 'var(--sepia)' : 'transparent',
+                      color: filterCat === cat ? 'var(--parchment-light)' : 'var(--sepia)',
+                    }}>
+                    {cat === 'all' ? 'All Flowers' : cat}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Flower grid */}
+          <div style={{ padding: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, overflowY: 'auto', flex: 1 }}>
+            {filteredFlowers.map((flower) => {
+              const sel = selectedFlowers.find((s) => s.flower.id === flower.id);
+              return (
+                <div key={flower.id} onClick={() => addFlower(flower)} title={`Add ${flower.name}`}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                    padding: '12px 6px', cursor: 'pointer', position: 'relative',
+                    opacity: sel ? 1 : 0.75,
+                    transition: 'all 0.2s',
+                  }}>
+                  {sel && <div className="flower-count-badge">{sel.count}</div>}
+                  <img src={`/flowers/${flower.file}`} alt={flower.name} width={72} height={72} style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }} />
+                  <span className="font-typewriter" style={{ fontSize: '0.65rem', color: 'var(--sepia)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', lineHeight: 1.3 }}>{flower.name}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Selected summary */}
+          {selectedFlowers.length > 0 && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--parchment-deep)', background: 'rgba(255,255,255,0.25)' }}>
+              {selectedFlowers.map(({ flower, count }) => (
+                <div key={flower.id} onClick={() => removeFlowerFromSelection(flower.id)} title="Click to remove"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, cursor: 'pointer', padding: '4px 6px', borderRadius: 4, transition: 'background 0.2s' }}>
+                  <span className="font-typewriter" style={{ fontSize: '0.7rem', color: 'var(--ink-brown)' }}>{flower.name} × {count}</span>
+                  <span style={{ color: 'var(--postal-red)', fontSize: '0.85rem' }}>✕</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── CENTER: CANVAS ── */}
+        <div className="builder-canvas-area" style={{ flexDirection: 'column' }}>
+          <div ref={canvasRef} className="bouquet-canvas" onClick={() => setActiveFlower(null)}>
+            {/* Background Shape */}
+            {arranged.length > 0 && (
+              <img src="/flowers/bg_abstract.png" alt="Background Shape" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 800, height: 800, objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.7 }} />
+            )}
+
+            {arranged.length === 0 && (
+              <div className="canvas-placeholder">
+                <div className="canvas-placeholder-icon">💐</div>
+                <div className="canvas-placeholder-text">
+                  Select flowers from the<br />inventory, then press<br />Auto Arrange
+                </div>
+              </div>
+            )}
+
+            {/* Red ribbon tie removed per user request */}
+
+            {/* Flowers — sorted by layer so fillers render behind */}
+            {[...arranged].sort((a, b) => a.layer - b.layer).map((item) => (
+              <BouquetFlower
+                key={item.id}
+                item={item}
+                isActive={activeFlower === item.id}
+                onClick={(e) => { e.stopPropagation(); setActiveFlower(item.id); }}
+                onDrag={(dx, dy) => {
+                  setArranged((prev) => prev.map((f) => f.id === item.id ? { ...f, x: f.x + dx, y: f.y + dy } : f));
+                }}
+              />
+            ))}
+
+            {/* Note Card Overlay */}
+            {noteText && arranged.length > 0 && (
+              <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))', pointerEvents: 'none' }}>
+                <div style={{ background: '#fdf6e3', width: 220, height: 130, padding: 16, border: '1px solid #e0d5c1', position: 'relative', overflow: 'hidden' }}>
+                  <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#5c4d3c', fontWeight: 'bold', marginBottom: 8 }}>Dear {noteRecipient},</div>
+                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
+                    {noteText.split('\n').slice(0, 4).join('\n')}
+                  </div>
+                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', fontWeight: 'bold', marginTop: 8, textAlign: 'right' }}>Sincerely, {noteSender}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Polaroid Tag Overlay */}
+            {polaroidImage && arranged.length > 0 && (
+              <div style={{ position: 'absolute', bottom: 30, right: 20, zIndex: 101, transform: 'rotate(8deg)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.25))', pointerEvents: 'none' }}>
+                <div style={{ background: 'white', width: 160, height: 190, padding: '12px 12px 40px 12px', position: 'relative' }}>
+                  <img src={polaroidImage} alt="Polaroid" style={{ width: '100%', height: 136, objectFit: 'cover', background: '#e0e0e0', display: 'block', filter: 'sepia(0.2) contrast(1.05) brightness(1.05) saturate(0.9) hue-rotate(-5deg)' }} />
+                </div>
+              </div>
+            )}
+          </div>
+          <button onClick={() => setCurrentStep('personalize')} id="btn-next-step" style={{ marginTop: 24, border: '1px solid black', background: 'black', color: 'white', padding: '12px 40px', fontFamily: 'var(--font-typewriter)', cursor: 'pointer', letterSpacing: '2px', fontWeight: 'bold' }}>
+            NEXT ➔
+          </button>
+        </div>
+
+        {/* ── RIGHT: TOOLS ── */}
+        <div style={{ background: 'var(--parchment-light)', borderLeft: '1px solid var(--parchment-deep)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* Quick actions */}
+          <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid var(--parchment-deep)' }}>
+            <div className="font-typewriter" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--sepia-light)', marginBottom: 10 }}>Arrange</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={autoArrange} id="btn-auto-arrange" title="Auto Arrange"
+                style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.2s', letterSpacing: '0.5px' }}>
+                ✦ Auto
+              </button>
+              <button onClick={shuffleArrangement} id="btn-shuffle" title="Shuffle"
+                style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.2s', letterSpacing: '0.5px' }}>
+                ⟳ Shuffle
+              </button>
+              <button onClick={clearAll} id="btn-clear" title="Clear All"
+                style={{ padding: '12px 14px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--postal-red)', transition: 'all 0.2s' }}>
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Greenery */}
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--parchment-deep)' }}>
+            <div className="font-typewriter" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--sepia-light)', marginBottom: 10 }}>Greenery</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['greenery1.png','greenery2.png','greenery3.png','greenery4.png','greenery5.png'].map((file, idx) => (
+                <button
+                  key={file}
+                  id={`btn-greenery-${idx + 1}`}
+                  onClick={() => changeGreenery(file)}
+                  title={`Greenery ${idx + 1}`}
+                  style={{
+                    flex: 1, padding: 3, border: 'none',
+                    background: selectedGreenery === file ? 'var(--parchment-dark)' : 'transparent',
+                    cursor: 'pointer', transition: 'all 0.2s', opacity: selectedGreenery === file ? 1 : 0.6,
+                  }}
+                >
+                  <img src={`/flowers/${file}`} alt={`Greenery ${idx + 1}`} style={{ width: '100%', height: 38, objectFit: 'cover', borderRadius: 3 }} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Flower editing tools */}
+          <div style={{ padding: '14px 16px', flex: 1, overflowY: 'auto' }}>
+            <div className="font-typewriter" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '2px', color: activeFlower ? 'var(--sepia)' : 'var(--sepia-light)', marginBottom: 12 }}>
+              {activeFlower ? '✦ Editing Flower' : 'Select a flower'}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, opacity: activeFlower ? 1 : 0.35, pointerEvents: activeFlower ? 'auto' : 'none' }}>
+              <button onClick={() => rotateActive(-15)} id="btn-rotate-left" title="Rotate Left"
+                style={{ padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.15s' }}>
+                ↺ Rotate
+              </button>
+              <button onClick={() => rotateActive(15)} id="btn-rotate-right" title="Rotate Right"
+                style={{ padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.15s' }}>
+                ↻ Rotate
+              </button>
+              <button onClick={() => resizeActive(0.1)} id="btn-enlarge" title="Enlarge"
+                style={{ padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.15s' }}>
+                ⊕ Bigger
+              </button>
+              <button onClick={() => resizeActive(-0.1)} id="btn-shrink" title="Shrink"
+                style={{ padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.15s' }}>
+                ⊖ Smaller
+              </button>
+              <button onClick={() => moveLayer(1)} id="btn-layer-up" title="Move Forward"
+                style={{ padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.15s' }}>
+                ⇧ Forward
+              </button>
+              <button onClick={() => moveLayer(-1)} id="btn-layer-down" title="Move Backward"
+                style={{ padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.15s' }}>
+                ⇩ Back
+              </button>
+            </div>
+            <button onClick={deleteActive} disabled={!activeFlower} id="btn-delete"
+              style={{ width: '100%', marginTop: 8, padding: '10px 0', border: 'none', background: 'transparent', cursor: activeFlower ? 'pointer' : 'default', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: activeFlower ? 'var(--postal-red)' : 'var(--sepia-light)', transition: 'all 0.15s', opacity: activeFlower ? 1 : 0.35 }}>
+              🗑 Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Draggable Flower Component ── */
+function BouquetFlower({ item, isActive, onClick, onDrag }) {
+  const ref = useRef(null);
+  const dragStart = useRef(null);
+
+  const handleMouseDown = (e) => {
+    e.stopPropagation();
+    dragStart.current = { mx: e.clientX, my: e.clientY };
+    const onMove = (ev) => {
+      if (!dragStart.current) return;
+      const dx = ev.clientX - dragStart.current.mx;
+      const dy = ev.clientY - dragStart.current.my;
+      dragStart.current = { mx: ev.clientX, my: ev.clientY };
+      onDrag(dx, dy);
+    };
+    const onUp = () => {
+      dragStart.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  // bg greenery images use BG_SIZE, everything else uses BASE_SIZE
+  const base = item.isBg ? BG_SIZE : BASE_SIZE;
+  const sz = base * item.scale;
+  return (
+    <div
+      ref={ref}
+      className={`bouquet-flower${isActive ? ' dragging' : ''}`}
+      style={{
+        left: item.x - sz / 2,
+        top: item.y - sz / 2,
+        width: sz,
+        height: sz,
+        zIndex: isActive ? 999 : item.layer,
+        transform: `rotate(${item.rotation}deg)`,
+        outline: isActive ? '2px dashed var(--gold-light)' : 'none',
+        outlineOffset: 6,
+        borderRadius: 4,
+        transition: 'outline 0.15s ease',
+      }}
+      onClick={onClick}
+      onMouseDown={handleMouseDown}
+    >
+      <img
+        src={`/flowers/${item.flower.file}`}
+        alt={item.flower.name}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', display: 'block' }}
+      />
+    </div>
+  );
+}

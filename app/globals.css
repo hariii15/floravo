@@ -1,0 +1,688 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Special+Elite&family=IM+Fell+English:ital@0;1&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* ============================================
+   VINTAGE BRITISH POSTAL THEME — DESIGN SYSTEM
+   ============================================ */
+
+:root {
+  /* Parchment Palette */
+  --parchment-light:  #f9f0dc;
+  --parchment:        #f2e4c0;
+  --parchment-dark:   #e8d5a3;
+  --parchment-deep:   #d4b97a;
+
+  /* Ink & Sepia Tones */
+  --ink-black:        #1a0f07;
+  --ink-brown:        #3b200a;
+  --sepia:            #7a4f2a;
+  --sepia-light:      #a06c3e;
+
+  /* Royal Mail Red */
+  --postal-red:       #c0392b;
+  --postal-red-dark:  #922b21;
+  --postal-red-light: #e74c3c;
+
+  /* Royal Blue accent */
+  --royal-blue:       #1a3a6b;
+  --royal-blue-light: #2e5fb0;
+
+  /* Wax seal gold */
+  --gold:             #b8860b;
+  --gold-light:       #daa520;
+  --gold-shine:       #f0c040;
+
+  /* Typography */
+  --font-display:     'Playfair Display', Georgia, serif;
+  --font-typewriter:  'Special Elite', 'Courier New', monospace;
+  --font-body:        'Crimson Text', Georgia, serif;
+  --font-script:      'IM Fell English', Georgia, serif;
+
+  /* Spacing */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  16px;
+}
+
+/* ============================================
+   RESET & BASE
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--ink-brown);
+  background-color: var(--parchment);
+  overflow-x: hidden;
+}
+
+/* ============================================
+   PARCHMENT TEXTURE BACKGROUND
+   ============================================ */
+.parchment-bg {
+  background-color: var(--parchment);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 20% 20%, rgba(244,228,178,0.6) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(210,180,140,0.4) 0%, transparent 60%),
+    linear-gradient(135deg, #f4e4b2 0%, #ecdba0 30%, #f0e0b0 60%, #e8d080 100%);
+  position: relative;
+}
+
+.parchment-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 28px,
+      rgba(122, 79, 42, 0.06) 28px,
+      rgba(122, 79, 42, 0.06) 29px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
+.font-display    { font-family: var(--font-display); }
+.font-typewriter { font-family: var(--font-typewriter); }
+.font-script     { font-family: var(--font-script); }
+.font-body       { font-family: var(--font-body); }
+
+.text-ink     { color: var(--ink-brown); }
+.text-sepia   { color: var(--sepia); }
+.text-red     { color: var(--postal-red); }
+.text-gold    { color: var(--gold); }
+.text-royal   { color: var(--royal-blue); }
+
+/* ============================================
+   ORNAMENTAL DIVIDERS
+   ============================================ */
+.ornament-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--sepia-light);
+  font-size: 1.2rem;
+}
+
+.ornament-divider::before,
+.ornament-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--parchment-deep), transparent);
+}
+
+/* ============================================
+   POSTAL STAMP COMPONENT
+   ============================================ */
+.stamp {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--postal-red);
+  padding: 8px 12px;
+  position: relative;
+  font-family: var(--font-typewriter);
+  font-size: 0.65rem;
+  color: var(--postal-red);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transform: rotate(-6deg);
+  background: transparent;
+}
+
+.stamp::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 2px dashed var(--postal-red-light);
+  opacity: 0.5;
+}
+
+/* ============================================
+   WAX SEAL COMPONENT
+   ============================================ */
+.wax-seal {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--postal-red-light), var(--postal-red-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 4px 15px rgba(192, 57, 43, 0.5),
+    inset 0 2px 6px rgba(255,255,255,0.2),
+    inset 0 -2px 6px rgba(0,0,0,0.3);
+  position: relative;
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.wax-seal::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.wax-seal:hover {
+  transform: scale(1.05) rotate(5deg);
+  box-shadow:
+    0 8px 25px rgba(192, 57, 43, 0.6),
+    inset 0 2px 6px rgba(255,255,255,0.2),
+    inset 0 -2px 6px rgba(0,0,0,0.3);
+}
+
+/* ============================================
+   POSTAL LETTER CARD
+   ============================================ */
+.letter-card {
+  background: var(--parchment-light);
+  border: 1px solid var(--parchment-deep);
+  border-radius: 4px;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(59, 32, 10, 0.05);
+  overflow: visible;
+}
+
+.letter-card-inner {
+  height: 100%;
+  position: relative;
+}
+
+/* ============================================
+   FORM INPUTS — TYPEWRITER STYLE
+   ============================================ */
+.vintage-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-family: var(--font-typewriter);
+  font-size: 0.95rem;
+  color: var(--ink-brown);
+  background: rgba(249, 240, 220, 0.8);
+  border: none;
+  border-bottom: 2px solid var(--parchment-deep);
+  outline: none;
+  transition: border-color 0.3s ease, background 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.vintage-input::placeholder {
+  color: var(--sepia-light);
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.vintage-input:focus {
+  border-bottom-color: var(--sepia);
+  background: rgba(249, 240, 220, 1);
+}
+
+.input-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-label {
+  display: block;
+  font-family: var(--font-typewriter);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--sepia);
+  margin-bottom: 6px;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn-primary {
+  width: 100%;
+  padding: 14px 28px;
+  font-family: var(--font-typewriter);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--parchment-light);
+  background: var(--ink-brown);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--sepia);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  font-family: var(--font-typewriter);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--sepia);
+  background: transparent;
+  border: 1px solid var(--parchment-deep);
+  border-radius: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--parchment-dark);
+  border-color: var(--sepia);
+  color: var(--ink-brown);
+}
+
+.btn-ghost {
+  background: none;
+  border: none;
+  font-family: var(--font-typewriter);
+  font-size: 0.75rem;
+  color: var(--sepia-light);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  transition: color 0.2s;
+  letter-spacing: 0.5px;
+}
+
+.btn-ghost:hover { color: var(--ink-brown); }
+
+/* ============================================
+   POSTMARK / CANCELLATION OVERLAY
+   ============================================ */
+.postmark {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid var(--postal-red);
+  width: 90px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-typewriter);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--postal-red);
+  opacity: 0.6;
+  transform: rotate(15deg);
+  pointer-events: none;
+}
+
+.postmark::before,
+.postmark::after {
+  content: '─────────';
+  display: block;
+  font-size: 0.4rem;
+  opacity: 0.7;
+}
+
+/* ============================================
+   ERROR MESSAGE
+   ============================================ */
+.error-msg {
+  font-family: var(--font-typewriter);
+  font-size: 0.75rem;
+  color: var(--postal-red);
+  background: rgba(192, 57, 43, 0.08);
+  border-left: 2px solid var(--postal-red);
+  padding: 8px 12px;
+  margin-top: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+   BUILDER LAYOUT
+   ============================================ */
+.builder-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 220px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.builder-panel {
+  background: var(--parchment-light);
+  border-right: 1px solid var(--parchment-deep);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.builder-panel:last-child {
+  border-right: none;
+  border-left: 1px solid var(--parchment-deep);
+}
+
+.panel-header {
+  padding: 16px 18px;
+  background: linear-gradient(180deg, var(--parchment-dark), var(--parchment));
+  border-bottom: 2px solid var(--parchment-deep);
+  font-family: var(--font-typewriter);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--sepia);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.builder-canvas-area {
+  background: var(--parchment);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   FLOWER INVENTORY CARD
+   ============================================ */
+.flower-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+  background: rgba(255,255,255,0.3);
+}
+
+.flower-card:hover {
+  border-color: var(--parchment-deep);
+  background: rgba(255,255,255,0.6);
+  transform: translateY(-2px);
+}
+
+.flower-card.selected {
+  border-color: var(--sepia);
+  background: rgba(255,255,255,0.8);
+}
+
+.flower-card img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  transition: transform 0.2s ease;
+}
+
+.flower-card:hover img { transform: scale(1.1); }
+
+.flower-card-name {
+  font-family: var(--font-typewriter);
+  font-size: 0.6rem;
+  text-align: center;
+  color: var(--sepia);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.flower-count-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--postal-red);
+  color: white;
+  font-size: 0.65rem;
+  font-family: var(--font-typewriter);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* ============================================
+   CANVAS BOUQUET AREA
+   ============================================ */
+.bouquet-canvas {
+  width: 560px;
+  height: 640px;
+  background:
+    radial-gradient(ellipse at 50% 85%, rgba(210,180,140,0.4) 0%, transparent 65%),
+    radial-gradient(ellipse at 50% 30%, rgba(240,228,196,0.3) 0%, transparent 60%),
+    var(--parchment-light);
+  border: 1px solid var(--parchment-deep);
+  border-radius: 4px;
+  position: relative;
+  box-shadow:
+    0 8px 40px rgba(59, 32, 10, 0.12),
+    inset 0 0 60px rgba(210,180,140,0.25);
+  overflow: hidden;
+}
+
+.canvas-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.canvas-placeholder-icon {
+  font-size: 5rem;
+  filter: grayscale(0.4);
+}
+
+.canvas-placeholder-text {
+  font-family: var(--font-typewriter);
+  font-size: 0.75rem;
+  color: var(--sepia);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  line-height: 1.8;
+}
+
+.bouquet-flower {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  /* Natural rotation from base of stem */
+  transform-origin: center 90%;
+  filter: drop-shadow(0 3px 6px rgba(20, 10, 0, 0.18));
+  transition: filter 0.2s ease;
+}
+
+.bouquet-flower:hover {
+  z-index: 100;
+}
+
+.bouquet-flower.dragging {
+  cursor: grabbing;
+  z-index: 999;
+  filter: drop-shadow(0 10px 20px rgba(59,32,10,0.45));
+}
+
+/* ============================================
+   CONTROL PANEL BUTTONS
+   ============================================ */
+.control-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-typewriter);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--sepia);
+  background: rgba(255,255,255,0.3);
+  border: 1px solid var(--parchment-deep);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.control-btn:hover {
+  background: var(--parchment-dark);
+  border-color: var(--sepia);
+  color: var(--ink-brown);
+  transform: translateX(2px);
+}
+
+.control-btn:active {
+  transform: translateX(0);
+  background: var(--parchment-deep);
+}
+
+.control-btn .icon { font-size: 1rem; }
+
+/* ============================================
+   CUSTOM DROPDOWN
+   ============================================ */
+.dropdown-option {
+  transition: all 0.2s ease;
+}
+
+.dropdown-option:not(.active):hover {
+  background: rgba(122, 79, 42, 0.15) !important;
+  color: var(--ink-brown) !important;
+}
+
+/* ============================================
+   WRAPPING SELECTOR
+   ============================================ */
+.wrapping-option {
+  padding: 8px 12px;
+  font-family: var(--font-typewriter);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid var(--parchment-deep);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--sepia);
+  background: rgba(255,255,255,0.3);
+}
+
+.wrapping-option:hover,
+.wrapping-option.active {
+  background: var(--parchment-dark);
+  border-color: var(--sepia);
+  color: var(--ink-brown);
+}
+
+/* ============================================
+   BUILDER TOPBAR
+   ============================================ */
+.builder-topbar {
+  background: linear-gradient(180deg, var(--ink-brown), #2a1505);
+  color: var(--parchment-light);
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  grid-column: 1 / -1;
+  border-bottom: 2px solid var(--gold);
+  position: relative;
+  z-index: 10;
+}
+
+.builder-topbar::after {
+  content: '❧ Royal Bouquet Atelier ❧';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--gold-light);
+  letter-spacing: 3px;
+  pointer-events: none;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes sealBounce {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%       { transform: scale(1.05) rotate(3deg); }
+}
+
+.animate-fadeInUp { animation: fadeInUp 0.6s ease forwards; }
+.animate-fadeIn   { animation: fadeIn 0.4s ease forwards; }
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--parchment); }
+::-webkit-scrollbar-thumb {
+  background: var(--parchment-deep);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--sepia-light); }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 900px) {
+  .builder-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: auto;
+  }
+}
