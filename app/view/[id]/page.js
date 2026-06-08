@@ -40,6 +40,58 @@ function useTypewriter(text, speed = 35, start = false) {
   return { displayed, done };
 }
 
+// ── Logo Component ────────────────────────────────────────────────────
+function Logo({ light }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={light ? '#d4b97a' : '#3b200a'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22V12" />
+        <path d="M12 12C12 9.5 10 7.5 7.5 7.5S3 9.5 3 12s2 4.5 4.5 4.5S12 14.5 12 12z" />
+        <path d="M12 12C12 9.5 14 7.5 16.5 7.5S21 9.5 21 12s-2 4.5-4.5 4.5S12 14.5 12 12z" />
+        <path d="M12 7.5V3" />
+        <path d="M8.5 4.5C9.5 3.5 11 3 12 3s2.5.5 3.5 1.5" />
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+        <span style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.85rem', fontWeight: 'bold', letterSpacing: '2px', color: light ? '#fff' : '#3b200a' }}>FLORAVO</span>
+        <span style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.55rem', letterSpacing: '1px', color: light ? '#d4b97a' : '#a06c3e', marginTop: 2 }}>ATELIER</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Leaf decorations for margins ───────────────────────────────────────
+function LeafDecorationLeft({ light }) {
+  return (
+    <div style={{ position: 'absolute', bottom: 0, left: 0, opacity: light ? 0.22 : 0.09, pointerEvents: 'none', transform: 'scale(1.2) translate(15px, 15px)' }}>
+      <svg width="220" height="320" viewBox="0 0 220 320" fill="none" stroke={light ? '#d4b97a' : '#3b200a'} strokeWidth="1">
+        <path d="M10 310 Q 80 220 70 20" />
+        <path d="M45 250 Q 100 220 120 200" />
+        <path d="M120 200 Q 100 180 55 220" />
+        <path d="M57 190 Q 120 160 140 130" />
+        <path d="M140 130 Q 110 110 65 160" />
+        <path d="M63 130 Q 120 90 130 60" />
+        <path d="M130 60 Q 100 40 67 100" />
+      </svg>
+    </div>
+  );
+}
+
+function LeafDecorationRight({ light }) {
+  return (
+    <div style={{ position: 'absolute', bottom: 0, right: 0, opacity: light ? 0.22 : 0.09, pointerEvents: 'none', transform: 'scale(1.2) translate(-15px, 15px) scaleX(-1)' }}>
+      <svg width="220" height="320" viewBox="0 0 220 320" fill="none" stroke={light ? '#d4b97a' : '#3b200a'} strokeWidth="1">
+        <path d="M10 310 Q 80 220 70 20" />
+        <path d="M45 250 Q 100 220 120 200" />
+        <path d="M120 200 Q 100 180 55 220" />
+        <path d="M57 190 Q 120 160 140 130" />
+        <path d="M140 130 Q 110 110 65 160" />
+        <path d="M63 130 Q 120 90 130 60" />
+        <path d="M130 60 Q 100 40 67 100" />
+      </svg>
+    </div>
+  );
+}
+
 export default function ViewBouquetPage() {
   const params = useParams();
   const id = params.id;
@@ -148,24 +200,48 @@ export default function ViewBouquetPage() {
 
   // ── SCENE 0: Intro ─────────────────────────────────────────────────────
   if (scene === 0) return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a0f07 0%, #3b1f0a 50%, #1a0f07 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-      <button onClick={skipToEnd} style={skipBtnStyle}>Skip ➔</button>
+    <div style={{ minHeight: '100vh', background: '#f5ede0', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      
+      {/* Header bar */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 40px', zIndex: 100 }}>
+        <Logo light={false} />
+        <button onClick={skipToEnd} style={headerSkipBtnStyle(false)}>SKIP ➔</button>
+      </div>
+
+      {/* Decorative leaf silhouettes */}
+      <LeafDecorationLeft light={false} />
+      <LeafDecorationRight light={false} />
+
       {particles.map(p => <FloralParticle key={p.key} file={p.file} left={p.left} top={p.top} size={p.size} delay={p.delay} duration={p.duration} />)}
+      
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2.5, ease: 'easeOut' }}
-        style={{ textAlign: 'center', zIndex: 10, padding: 40 }}>
-        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 2, delay: 0.5, ease: [0.22,1,0.36,1] }}
-          style={{ width: 140, height: 140, margin: '0 auto 32px', filter: 'drop-shadow(0 12px 40px rgba(212,185,122,0.4))' }}>
-          <img src="/flowers/penoy.png" alt="Peony" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        style={{ textAlign: 'center', zIndex: 10, padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 1.8, delay: 0.3 }}
+          style={{ width: 90, height: 90, marginBottom: 32 }}>
+          <img src="/flowers/penoy.png" alt="Flower Motif" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </motion.div>
-        <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 2, delay: 1.2 }}
-          style={{ fontFamily: 'var(--font-script)', fontSize: '2rem', color: '#f2e4c0', letterSpacing: 2, lineHeight: 1.7, maxWidth: 540 }}>
-          Someone special has created something for you...
+
+        <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.5, delay: 0.8 }}
+          style={{ fontFamily: 'var(--font-body)', fontSize: '2.1rem', color: '#3b200a', margin: 0, fontWeight: 300, letterSpacing: '0.5px' }}>
+          Someone special has created
         </motion.p>
-        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.6, delay: 3 }}
-          style={{ height: 1, background: 'linear-gradient(90deg,transparent,#d4b97a,transparent)', marginTop: 48 }} />
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.6, duration: 1 }}
-          style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.65rem', color: '#a06c3e', letterSpacing: 4, marginTop: 20, textTransform: 'uppercase' }}>
-          — via Floravo Atelier —
+        <motion.p initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.5, delay: 1.3 }}
+          style={{ fontFamily: 'var(--font-script)', fontSize: '2.3rem', color: '#8c603b', fontStyle: 'italic', margin: '4px 0 0' }}>
+          something for you...
+        </motion.p>
+
+        {/* Separator heart */}
+        <motion.div initial={{ scaleX: 0, opacity: 0 }} animate={{ scaleX: 1, opacity: 0.6 }} transition={{ duration: 1.2, delay: 2 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '36px 0 0', width: 220 }}>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, #8c603b)' }} />
+          <span style={{ color: '#8c603b', fontSize: '0.65rem' }}>♥</span>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(270deg, transparent, #8c603b)' }} />
+        </motion.div>
+
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.4, duration: 1 }}
+          style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.58rem', color: '#a06c3e', letterSpacing: 4, marginTop: 18, textTransform: 'uppercase' }}>
+          • via Floravo Atelier •
         </motion.p>
       </motion.div>
     </div>
@@ -232,45 +308,86 @@ export default function ViewBouquetPage() {
 
   // ── SCENE 3: Vinyl ─────────────────────────────────────────────────────
   if (scene === 3) return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#1a0f07,#2e1a0a)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40, position: 'relative' }}>
-      <button onClick={skipToEnd} style={{ ...skipBtnStyle, color: '#d4b97a', borderColor: '#d4b97a' }}>Skip ➔</button>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-        style={{ fontFamily: 'var(--font-script)', fontSize: '1.4rem', color: '#d4b97a', letterSpacing: 2 }}>
-        A voice note awaits…
-      </motion.p>
-      <motion.div initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-        {/* Vinyl disc — rotation driven by useAnimationFrame, no seam */}
-        <motion.img
-          src="/vinyl.png" alt="Vinyl"
-          style={{ width: 260, height: 260, borderRadius: '50%', filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.7))', rotate: vinylRot }}
-        />
-        {/* Play/Pause button BELOW the vinyl */}
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #2c1a0e 0%, #1e1109 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      
+      {/* Header bar */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 40px', zIndex: 100 }}>
+        <Logo light={true} />
+        <button onClick={skipToEnd} style={headerSkipBtnStyle(true)}>SKIP ➔</button>
+      </div>
+
+      {/* Decorative leaf silhouettes */}
+      <LeafDecorationLeft light={true} />
+      <LeafDecorationRight light={true} />
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10 }}>
+        
+        <p style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.62rem', letterSpacing: '4px', color: 'rgba(212,185,122,0.7)', textTransform: 'uppercase', marginBottom: 36 }}>
+          A voice note awaits...
+        </p>
+
+        {/* Concentric gold rings and leaf sprigs around vinyl */}
+        <div style={{ position: 'relative', width: 330, height: 330, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28 }}>
+          <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', border: '1px solid rgba(212,185,122,0.1)' }} />
+          <div style={{ position: 'absolute', width: 290, height: 290, borderRadius: '50%', border: '1px dashed rgba(212,185,122,0.15)' }} />
+          
+          {/* Left Leaf sprig */}
+          <div style={{ position: 'absolute', left: -22, top: '50%', transform: 'translateY(-50%) rotate(-30deg)', opacity: 0.55 }}>
+            <svg width="24" height="60" viewBox="0 0 24 60" fill="none" stroke="#d4b97a" strokeWidth="1">
+              <path d="M12 55 V5" />
+              <path d="M12 40 C6 38 4 32 4 32 C4 32 8 32 12 36" />
+              <path d="M12 25 C18 23 20 17 20 17 C20 17 16 17 12 21" />
+              <path d="M12 15 C6 13 4 7 4 7 C4 7 8 7 12 11" />
+            </svg>
+          </div>
+          
+          {/* Right Leaf sprig */}
+          <div style={{ position: 'absolute', right: -22, top: '50%', transform: 'translateY(-50%) rotate(30deg) scaleX(-1)', opacity: 0.55 }}>
+            <svg width="24" height="60" viewBox="0 0 24 60" fill="none" stroke="#d4b97a" strokeWidth="1">
+              <path d="M12 55 V5" />
+              <path d="M12 40 C6 38 4 32 4 32 C4 32 8 32 12 36" />
+              <path d="M12 25 C18 23 20 17 20 17 C20 17 16 17 12 21" />
+              <path d="M12 15 C6 13 4 7 4 7 C4 7 8 7 12 11" />
+            </svg>
+          </div>
+
+          {/* Vinyl record disc */}
+          <motion.img
+            src="/vinyl.png" alt="Vinyl"
+            style={{ width: 250, height: 250, borderRadius: '50%', filter: 'drop-shadow(0 15px 40px rgba(0,0,0,0.85))', rotate: vinylRot, zIndex: 2 }}
+          />
+        </div>
+
+        {/* Play/Pause button below vinyl */}
         <motion.button
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
           onClick={() => {
             const next = !isPlaying;
             setIsPlaying(next);
             if (audioRef.current) { next ? audioRef.current.play().catch(()=>{}) : audioRef.current.pause(); }
           }}
-          style={{ marginTop: 28, width: 64, height: 64, borderRadius: '50%', background: 'rgba(253,246,227,0.95)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
+          style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff', border: 'none', color: '#1e1109', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', marginBottom: 36 }}>
           {isPlaying ? '⏸' : '▶'}
         </motion.button>
+
+        {/* Reveal Bouquet outline button */}
+        <motion.button
+          whileHover={{ scale: 1.03, background: 'rgba(212,185,122,0.05)' }} whileTap={{ scale: 0.97 }}
+          onClick={() => { setIsPlaying(false); if(audioRef.current) audioRef.current.pause(); setScene(4); }}
+          style={{ background: 'transparent', border: '1px solid #d4b97a', borderRadius: '24px', color: '#d4b97a', padding: '12px 36px', fontFamily: 'var(--font-typewriter)', fontSize: '0.72rem', letterSpacing: '3px', cursor: 'pointer', textTransform: 'uppercase' }}>
+          Reveal the Bouquet ➔
+        </motion.button>
+
         {!voiceNote && (
-          <p style={{ fontFamily: 'var(--font-typewriter)', color: '#a06c3e', fontSize: '0.75rem', letterSpacing: 2, marginTop: 16 }}>No voice note attached</p>
+          <p style={{ fontFamily: 'var(--font-typewriter)', color: 'rgba(212,185,122,0.4)', fontSize: '0.65rem', letterSpacing: 2, marginTop: 16 }}>No voice note attached</p>
         )}
       </motion.div>
+
       {voiceNote && (
         <audio src={voiceNote} onEnded={() => setIsPlaying(false)} style={{ display: 'none' }}
           ref={el => { audioRef.current = el; }} />
       )}
-      <motion.button
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
-        onClick={() => { setIsPlaying(false); if(audioRef.current) audioRef.current.pause(); setScene(4); }}
-        style={continueBtnStyle}>
-        Reveal the Bouquet ➔
-      </motion.button>
     </div>
   );
 
@@ -453,4 +570,18 @@ const continueBtnStyle = {
   color:'white', fontFamily:'var(--font-typewriter)', fontSize:'0.8rem',
   letterSpacing:3, cursor:'pointer', textTransform:'uppercase',
 };
+
+const headerSkipBtnStyle = (light) => ({
+  padding: '8px 20px',
+  border: `1px solid ${light ? 'rgba(255,255,255,0.4)' : '#3b200a'}`,
+  borderRadius: '4px',
+  background: 'transparent',
+  color: light ? '#fff' : '#3b200a',
+  fontFamily: 'var(--font-typewriter)',
+  fontSize: '0.65rem',
+  letterSpacing: '2px',
+  cursor: 'pointer',
+  textTransform: 'uppercase',
+  transition: 'all 0.2s',
+});
 
