@@ -571,7 +571,7 @@ export default function BuilderPage() {
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 60, flex: 1, width: '100%', maxWidth: 1100 }}>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', opacity: 0.9 }}>
+          <div style={{ flex: 0.7, display: 'flex', justifyContent: 'flex-end', opacity: 0.9 }}>
              <img src="/flowers/lilly.png" style={{ height: 300, objectFit: 'contain' }} alt="Decoration" />
           </div>
           
@@ -599,7 +599,7 @@ export default function BuilderPage() {
              />
           </div>
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1.3, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
             <img src="/flowers/sunflower.png" style={{ height: 240, objectFit: 'contain', opacity: 0.9 }} alt="Decoration" />
             
             <div style={{ textAlign: 'center', width: '100%', maxWidth: 220, paddingLeft: 20 }}>
@@ -674,90 +674,110 @@ export default function BuilderPage() {
 
   if (currentStep === 'review') {
     return (
-       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--parchment-bg)', padding: '40px 0' }}>
-          <div className="font-script" style={{ fontSize: '3rem', marginBottom: '24px', color: 'var(--ink-black)' }}>Review Your Bouquet</div>
-          
-          <div style={{ position: 'relative', width: 560, height: 640, background: '#f9f0dc', border: '1px solid var(--parchment-deep)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-            {[...arranged].sort((a, b) => a.layer - b.layer).map(item => (
-                <div
-                key={item.id}
-                style={{
-                  position: 'absolute', left: item.x - (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale / 2, top: item.y - (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale / 2,
-                  width: (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale, height: (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale,
-                  zIndex: item.layer, transform: `rotate(${item.rotation}deg)`, pointerEvents: 'none'
-                }}
-              >
-                <img src={`/flowers/${item.flower.file}`} alt={item.flower.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              </div>
-            ))}
-
-            {noteText && arranged.length > 0 && (
-              <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))', pointerEvents: 'none' }}>
-                <div style={{ background: '#fdf6e3', width: 220, height: 130, padding: 16, border: '1px solid #e0d5c1', position: 'relative', overflow: 'hidden' }}>
-                  <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#5c4d3c', fontWeight: 'bold', marginBottom: 8 }}>Dear {noteRecipient},</div>
-                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
-                    {noteText.split('\n').slice(0, 4).join('\n')}
-                  </div>
-                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', fontWeight: 'bold', marginTop: 8, textAlign: 'right' }}>Sincerely, {noteSender}</div>
-                </div>
-              </div>
-            )}
-
-            {polaroidImage && arranged.length > 0 && (
-              <div style={{ position: 'absolute', bottom: 30, right: 20, zIndex: 101, transform: 'rotate(8deg)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.25))', pointerEvents: 'none' }}>
-                <div style={{ background: 'white', width: 160, height: 190, padding: '12px 12px 40px 12px', position: 'relative' }}>
-                  <img src={polaroidImage} alt="Polaroid" style={{ width: '100%', height: 136, objectFit: 'cover', background: '#e0e0e0', display: 'block', filter: 'sepia(0.2) contrast(1.05) brightness(1.05) saturate(0.9) hue-rotate(-5deg)' }} />
-                </div>
-              </div>
-            )}
-
-            {voicePreviewUrl && arranged.length > 0 && (
-              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 102, transform: 'rotate(4deg)', pointerEvents: 'none' }}>
-                <div style={{ background: '#fff7e8', border: '1px solid #d5c29f', padding: '8px 12px', boxShadow: '0 8px 18px rgba(0,0,0,0.14)', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', letterSpacing: '1px', color: '#5c4d3c' }}>
-                  VOICE NOTE ATTACHED
-                </div>
-              </div>
-            )}
+       <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+          <div style={{ padding: '40px 0 20px' }}>
+            <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 60, objectFit: 'contain' }} />
           </div>
           
-          <div style={{ display: 'flex', gap: 16, marginTop: 32 }}>
-            <button className="control-btn" onClick={() => setCurrentStep('personalize')} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px' }}>
-               Back to Card
-            </button>
-            <button className="control-btn" onClick={saveAndShareBouquet} disabled={saving} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px' }}>
-               {saving ? 'Saving...' : '🔗 Save & Share'}
-            </button>
-            <button className="btn-primary" onClick={exportPNG} style={{ padding: '12px 32px', fontSize: '1rem', letterSpacing: '1px' }}>
-              <span className="icon">📥</span> Export Final Bouquet
-            </button>
+          <div className="font-typewriter" style={{ fontSize: '1rem', letterSpacing: '4px', margin: '0 0 40px 0', color: 'var(--ink-brown)', fontWeight: 'bold' }}>
+            REVIEW YOUR CREATION
           </div>
-
-          {shareUrl && (
-            <div style={{ marginTop: 24, padding: '16px', border: '1px solid black', background: 'white', fontFamily: 'var(--font-typewriter)', textAlign: 'center', width: '100%', maxWidth: 450 }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', marginBottom: 8 }}>BOUQUET SAVED SUCCESSFULLY!</div>
-              <div style={{ fontSize: '0.7rem', color: '#555', wordBreak: 'break-all', padding: '8px', background: '#f9f0dc', border: '1px dashed #ccc', marginBottom: 12 }}>
-                {shareUrl}
-              </div>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(shareUrl);
-                  alert('Link copied to clipboard!');
-                }}
-                style={{ padding: '6px 16px', background: 'black', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}
-              >
-                Copy Link
-              </button>
+          
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 60, flex: 1, width: '100%', maxWidth: 1200, paddingBottom: '40px' }}>
+            {/* Left Decorative Flower */}
+            <div style={{ flex: 0.4, display: 'flex', justifyContent: 'flex-end', opacity: 0.9 }}>
+               <img src="/flowers/lilly.png" style={{ height: 300, objectFit: 'contain' }} alt="Decoration" />
             </div>
-          )}
+            
+            {/* Center Canvas Showcase */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ position: 'relative', width: 560, height: 640, background: '#f9f0dc', border: '1px solid var(--parchment-deep)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                {[...arranged].sort((a, b) => a.layer - b.layer).map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      position: 'absolute', left: item.x - (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale / 2, top: item.y - (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale / 2,
+                      width: (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale, height: (item.isBg ? BG_SIZE : BASE_SIZE)*item.scale,
+                      zIndex: item.layer, transform: `rotate(${item.rotation}deg)`, pointerEvents: 'none'
+                    }}
+                  >
+                    <img src={`/flowers/${item.flower.file}`} alt={item.flower.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </div>
+                ))}
 
-            {voicePreviewUrl && (
-              <div style={{ marginTop: 18, width: 280, background: 'rgba(255,255,255,0.55)', border: '1px solid var(--parchment-deep)', padding: '14px 16px', textAlign: 'left' }}>
-                <div className="font-typewriter" style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--sepia-light)', marginBottom: 8 }}>
-                  Voice Preview
-                </div>
-                <audio controls src={voicePreviewUrl} style={{ width: '100%' }} />
+                {noteText && arranged.length > 0 && (
+                  <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))', pointerEvents: 'none' }}>
+                    <div style={{ background: '#fdf6e3', width: 220, height: 130, padding: 16, border: '1px solid #e0d5c1', position: 'relative', overflow: 'hidden' }}>
+                      <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#5c4d3c', fontWeight: 'bold', marginBottom: 8 }}>Dear {noteRecipient},</div>
+                      <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
+                        {noteText.split('\n').slice(0, 4).join('\n')}
+                      </div>
+                      <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', fontWeight: 'bold', marginTop: 8, textAlign: 'right' }}>Sincerely, {noteSender}</div>
+                    </div>
+                  </div>
+                )}
+
+                {polaroidImage && arranged.length > 0 && (
+                  <div style={{ position: 'absolute', bottom: 30, right: 20, zIndex: 101, transform: 'rotate(8deg)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.25))', pointerEvents: 'none' }}>
+                    <div style={{ background: 'white', width: 160, height: 190, padding: '12px 12px 40px 12px', position: 'relative' }}>
+                      <img src={polaroidImage} alt="Polaroid" style={{ width: '100%', height: 136, objectFit: 'cover', background: '#e0e0e0', display: 'block', filter: 'sepia(0.2) contrast(1.05) brightness(1.05) saturate(0.9) hue-rotate(-5deg)' }} />
+                    </div>
+                  </div>
+                )}
+
+                {voicePreviewUrl && arranged.length > 0 && (
+                  <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 102, transform: 'rotate(4deg)', pointerEvents: 'none' }}>
+                    <div style={{ background: '#fff7e8', border: '1px solid #d5c29f', padding: '8px 12px', boxShadow: '0 8px 18px rgba(0,0,0,0.14)', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', letterSpacing: '1px', color: '#5c4d3c' }}>
+                      VOICE NOTE ATTACHED
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+              
+              <div style={{ display: 'flex', gap: 16, marginTop: 32 }}>
+                <button className="control-btn" onClick={() => setCurrentStep('personalize')} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', cursor: 'pointer' }}>
+                   Back to Card
+                </button>
+                <button className="control-btn" onClick={saveAndShareBouquet} disabled={saving} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', cursor: 'pointer' }}>
+                   {saving ? 'Saving...' : '🔗 Save & Share'}
+                </button>
+                <button className="btn-primary" onClick={exportPNG} style={{ padding: '12px 32px', fontSize: '0.8rem', letterSpacing: '1px', background: 'black', color: 'white', border: '1px solid black', fontFamily: 'var(--font-typewriter)', textTransform: 'uppercase', cursor: 'pointer' }}>
+                   📥 Export Final Bouquet
+                </button>
+              </div>
+
+              {shareUrl && (
+                <div style={{ marginTop: 24, padding: '16px', border: '1px solid black', background: 'white', fontFamily: 'var(--font-typewriter)', textAlign: 'center', width: '100%', maxWidth: 450, boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 'bold', marginBottom: 8, color: 'var(--ink-brown)' }}>BOUQUET SAVED SUCCESSFULLY!</div>
+                  <div style={{ fontSize: '0.7rem', color: '#555', wordBreak: 'break-all', padding: '8px', background: '#f9f0dc', border: '1px dashed #ccc', marginBottom: 12 }}>
+                    {shareUrl}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareUrl);
+                      alert('Link copied to clipboard!');
+                    }}
+                    style={{ padding: '8px 20px', background: 'black', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'var(--font-typewriter)' }}
+                  >
+                    Copy Link
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Right Decorative Flower & Voice Preview */}
+            <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
+               <img src="/flowers/sunflower.png" style={{ height: 240, objectFit: 'contain', opacity: 0.9 }} alt="Decoration" />
+               {voicePreviewUrl && (
+                 <div style={{ width: 240, background: 'white', border: '1px solid black', padding: '14px 16px', textAlign: 'left', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+                   <div className="font-typewriter" style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--ink-brown)', marginBottom: 8, fontWeight: 'bold' }}>
+                     Voice Preview
+                   </div>
+                   <audio controls src={voicePreviewUrl} style={{ width: '100%' }} />
+                 </div>
+               )}
+            </div>
+          </div>
        </div>
     );
   }
