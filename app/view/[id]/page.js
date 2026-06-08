@@ -274,135 +274,166 @@ export default function ViewBouquetPage() {
     </div>
   );
 
+  // ── Flower meanings ──────────────────────────────────────────────────
+  const MEANINGS = {
+    rose:'Love, passion and deep affection.',sunflower:'Adoration, loyalty and lasting happiness.',
+    penoy:'Romance, prosperity and good fortune.',lilly:'Devotion, admiration and gentle love.',
+    pink_tulip:'Perfect love and happiness.',tulip_white:'Purity, forgiveness and new beginnings.',
+    yellow_tulip:'Cheerful thoughts and sunshine.',carnation_red:'Deep love and admiration.',
+    carnation_pink:'Gratitude and admiration.',carnation_yellow:'Joy and cheerfulness.',
+    gergebra_orange:'Warmth, enthusiasm and joy.',gergebra_pink:'Admiration and grace.',
+    gergebra_white:'Innocence and purity.',gergebra_yellow:'Happiness and friendship.',
+    hydrarenga:'Heartfelt emotions and gratitude.',white:'Purity and new beginnings.',
+    babys_breath:'Everlasting love and innocence.',eucaluptus:'Protection and abundance.',
+  };
+
+  // Unique primary/secondary flowers for right panel
+  const featuredFlowers = (() => {
+    const seen = new Set();
+    const out = [];
+    for (const item of arranged) {
+      const c = item.flower.category;
+      if ((c === 'primary' || c === 'secondary') && !seen.has(item.flower.id)) {
+        seen.add(item.flower.id);
+        out.push(item.flower);
+        if (out.length >= 4) break;
+      }
+    }
+    return out;
+  })();
+
   // ── SCENE 4 + 5: Bouquet Bloom & Final ────────────────────────────────
   const sortedArr = sortedArranged(arranged);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fdf6e3', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ minHeight:'100vh', background:'#f5ede0', fontFamily:'var(--font-body)' }}>
 
-      {/* Skip button — only during bloom */}
-      {scene === 4 && <button onClick={skipToEnd} style={skipBtnStyle}>Skip ➔</button>}
+      {/* ── TOP BAR ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 40px', borderBottom:'1px solid #e8d9c8', background:'#f5ede0' }}>
+        <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo" style={{ height:44, objectFit:'contain' }} />
+        <div style={{ textAlign:'center' }}>
+          <h1 style={{ fontFamily:'var(--font-script)', fontSize:'2.4rem', color:'#3b200a', margin:0, lineHeight:1 }}>A Special Correspondence</h1>
+          <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.6rem', color:'#a06c3e', letterSpacing:4, margin:'6px 0 0', textTransform:'uppercase' }}>— Sent via Floravo Atelier —</p>
+        </div>
+        {scene===4
+          ? <button onClick={skipToEnd} style={{ padding:'10px 22px', border:'1px solid #3b200a', background:'transparent', fontFamily:'var(--font-typewriter)', fontSize:'0.7rem', letterSpacing:2, cursor:'pointer', textTransform:'uppercase' }}>Skip ➔</button>
+          : <div style={{ width:100 }} />}
+      </div>
 
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}
-        style={{ textAlign: 'center', paddingTop: 48, paddingBottom: 32 }}>
-        <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo" style={{ height: 52, objectFit: 'contain', marginBottom: 16 }} />
-        <h1 style={{ fontFamily: 'var(--font-script)', fontSize: '2.8rem', color: 'var(--ink-brown)', margin: 0 }}>A Special Correspondence</h1>
-        <p style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.65rem', color: 'var(--sepia-light)', letterSpacing: 4, marginTop: 8, textTransform: 'uppercase' }}>— Sent via Floravo Atelier —</p>
-      </motion.div>
+      {/* ── THREE COLUMNS ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'280px 1fr 280px', gap:24, maxWidth:1280, margin:'0 auto', padding:'28px 32px 60px', alignItems:'start' }}>
 
-      {/* Main Layout */}
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 48, maxWidth: 1200, margin: '0 auto', padding: '0 32px 60px' }}>
+        {/* ── LEFT PANEL ── */}
+        <motion.div initial={{opacity:0,x:-30}} animate={{opacity:1,x:0}} transition={{duration:0.8,delay:0.2}}
+          style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
-        {/* Left: Letter card */}
-        <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.9, delay: 0.4 }}
-          style={{ flex: '0 0 260px', marginTop: 40 }}>
+          {/* Note card */}
           {noteText && (
-            <div style={{ background: 'white', border: '1px solid #e0d5c1', padding: '24px', transform: 'rotate(-2deg)', boxShadow: '0 12px 40px rgba(0,0,0,0.1)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(transparent,transparent 23px,#f0e8d8 23px,#f0e8d8 24px)', pointerEvents: 'none', opacity: 0.4 }} />
-              <div style={{ position: 'relative', fontFamily: 'var(--font-typewriter)', fontSize: '0.78rem', color: '#3b200a', lineHeight: 2, whiteSpace: 'pre-wrap' }}>
+            <div style={{ background:'white', borderRadius:12, padding:'20px 22px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc' }}>
+              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:14, display:'flex', alignItems:'center', gap:6 }}>🌿 Your Note</p>
+              <div style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.8rem', color:'#3b200a', lineHeight:2, whiteSpace:'pre-wrap' }}>
                 {`Dear ${noteRecipient},\n\n${noteText}\n\nSincerely,\n${noteSender}`}
               </div>
             </div>
           )}
+
+          {/* Polaroid */}
           {polaroidImage && (
-            <motion.div initial={{ opacity: 0, rotate: -5 }} animate={{ opacity: 1, rotate: 3 }} transition={{ delay: 0.8 }}
-              style={{ marginTop: 24, background: 'white', padding: '10px 10px 36px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)', display: 'inline-block' }}>
-              <img src={polaroidImage} alt="Polaroid" style={{ width: 180, height: 180, objectFit: 'cover', filter: 'sepia(0.2) contrast(1.05) brightness(1.05)' }} />
-            </motion.div>
+            <div style={{ background:'white', borderRadius:12, padding:'16px 18px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc' }}>
+              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:12 }}>👤 From You</p>
+              <img src={polaroidImage} alt="Polaroid" style={{ width:'100%', borderRadius:6, objectFit:'cover', display:'block', filter:'sepia(0.15) contrast(1.05) brightness(1.04)' }} />
+            </div>
           )}
+
+          {/* Vinyl voice note */}
           {voiceNote && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-              style={{ marginTop: 20, background: '#1a0f07', border: '1px solid #3b1f0a', padding: '20px 20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, borderRadius: 4 }}>
-              <p style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.6rem', letterSpacing: 3, textTransform: 'uppercase', color: '#d4b97a', marginBottom: 12, fontWeight: 'bold' }}>Voice Note</p>
+            <div style={{ background:'white', borderRadius:12, padding:'18px 20px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc', display:'flex', flexDirection:'column', alignItems:'center', gap:0 }}>
+              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:14, alignSelf:'flex-start', display:'flex', alignItems:'center', gap:6 }}>🎵 Voice Note</p>
               <motion.img src="/vinyl.png" alt="Vinyl"
-                style={{ width: 120, height: 120, borderRadius: '50%', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.7))', rotate: finalVinylRot }} />
-              <motion.button
-                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
+                style={{ width:110, height:110, borderRadius:'50%', filter:'drop-shadow(0 6px 20px rgba(0,0,0,0.3))', rotate:finalVinylRot }} />
+              <motion.button whileHover={{scale:1.08}} whileTap={{scale:0.93}}
                 onClick={() => {
                   const next = !finalVinylPlaying;
                   setFinalVinylPlaying(next);
                   if (vinylAudioRef.current) { next ? vinylAudioRef.current.play().catch(()=>{}) : vinylAudioRef.current.pause(); }
                 }}
-                style={{ marginTop: 14, width: 46, height: 46, borderRadius: '50%', background: 'rgba(253,246,227,0.95)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
+                style={{ marginTop:16, width:48, height:48, borderRadius:'50%', background:'#3b200a', border:'none', color:'white', fontSize:'1.1rem', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 14px rgba(0,0,0,0.2)' }}>
                 {finalVinylPlaying ? '⏸' : '▶'}
               </motion.button>
-              <audio src={voiceNote} onEnded={() => setFinalVinylPlaying(false)} style={{ display: 'none' }}
-                ref={el => { vinylAudioRef.current = el; }} />
-            </motion.div>
+              <audio src={voiceNote} onEnded={()=>setFinalVinylPlaying(false)} style={{display:'none'}} ref={el=>{vinylAudioRef.current=el;}} />
+            </div>
           )}
         </motion.div>
 
-        {/* Center: Bouquet Canvas */}
-        <div style={{ flex: '0 0 560px' }}>
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }}
-            style={{ position: 'relative', width: 560, height: 640, background: '#f9f0dc', border: '1px solid var(--parchment-deep)', boxShadow: '0 20px 80px rgba(0,0,0,0.14)', overflow: 'hidden' }}>
-            <AnimatePresence>
-              {sortedArr.map((item) => {
-                const isVisible = bloomedItems.includes(item.id);
-                const base = item.isBg ? BG_SIZE : BASE_SIZE;
-                const sz = base * item.scale;
-                return (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, scale: 0.3 }}
-                    animate={isVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.3 }}
-                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      position: 'absolute',
-                      left: item.x - sz / 2, top: item.y - sz / 2,
-                      width: sz, height: sz,
-                      zIndex: item.layer,
-                      transform: `rotate(${item.rotation}deg)`,
-                      pointerEvents: 'none',
-                    }}>
-                    <img src={`/flowers/${item.flower.file}`} alt={item.flower.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-
-            {/* Note overlay on canvas */}
-            {noteText && (
-              <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))', pointerEvents: 'none' }}>
-                <div style={{ background: '#fdf6e3', width: 200, padding: '12px 14px', border: '1px solid #e0d5c1', overflow: 'hidden' }}>
-                  <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.72rem', color: '#5c4d3c', fontWeight: 'bold', marginBottom: 4 }}>Dear {noteRecipient},</div>
-                  <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.68rem', color: '#5c4d3c', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{noteText.slice(0, 80)}{noteText.length > 80 ? '…' : ''}</div>
-                  <div style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.68rem', color: '#5c4d3c', fontWeight: 'bold', textAlign: 'right', marginTop: 4 }}>Sincerely, {noteSender}</div>
-                </div>
-              </div>
-            )}
+        {/* ── CENTER: BOUQUET CANVAS ── */}
+        <motion.div initial={{opacity:0,scale:0.97}} animate={{opacity:1,scale:1}} transition={{duration:0.9}}
+          style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+          <div style={{ position:'relative', width:560, height:640, background:'#fdf6e3', borderRadius:16, boxShadow:'0 8px 48px rgba(0,0,0,0.1)', overflow:'hidden', border:'1px solid #e8d9c8' }}>
+            {sortedArr.map(item => {
+              const isVisible = bloomedItems.includes(item.id);
+              const base = item.isBg ? BG_SIZE : BASE_SIZE;
+              const sz = base * item.scale;
+              return (
+                <motion.div key={item.id}
+                  initial={{opacity:0,scale:0.3}} animate={isVisible?{opacity:1,scale:1}:{opacity:0,scale:0.3}}
+                  transition={{duration:0.7,ease:[0.22,1,0.36,1]}}
+                  style={{ position:'absolute', left:item.x-sz/2, top:item.y-sz/2, width:sz, height:sz, zIndex:item.layer, transform:`rotate(${item.rotation}deg)`, pointerEvents:'none' }}>
+                  <img src={`/flowers/${item.flower.file}`} alt={item.flower.name} style={{width:'100%',height:'100%',objectFit:'contain'}} />
+                </motion.div>
+              );
+            })}
             {polaroidImage && (
-              <div style={{ position: 'absolute', bottom: 30, right: 20, zIndex: 101, transform: 'rotate(8deg)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.25))', pointerEvents: 'none' }}>
-                <div style={{ background: 'white', width: 140, padding: '8px 8px 32px' }}>
-                  <img src={polaroidImage} alt="Polaroid" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
+              <div style={{position:'absolute',bottom:24,right:16,zIndex:101,transform:'rotate(7deg)',filter:'drop-shadow(0 8px 16px rgba(0,0,0,0.2))',pointerEvents:'none'}}>
+                <div style={{background:'white',padding:'8px 8px 28px',width:130}}>
+                  <img src={polaroidImage} alt="Polaroid" style={{width:'100%',height:110,objectFit:'cover',display:'block'}} />
                 </div>
               </div>
             )}
-          </motion.div>
-
-          {/* Action buttons */}
-          {scene === 5 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-              style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button onClick={() => {
-                const link = window.location.href;
-                navigator.clipboard.writeText(link).then(() => alert('Link copied!')).catch(() => {});
-              }} style={{ padding: '12px 28px', border: '1px solid black', background: 'white', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', letterSpacing: 2, cursor: 'pointer' }}>
-                🔗 Share This Bouquet
+          </div>
+          {scene===5 && (
+            <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.5}}
+              style={{display:'flex',gap:12,marginTop:22,justifyContent:'center',flexWrap:'wrap'}}>
+              <button onClick={()=>navigator.clipboard.writeText(window.location.href).then(()=>alert('Link copied!'))}
+                style={{padding:'12px 26px',border:'1px solid #3b200a',background:'white',fontFamily:'var(--font-typewriter)',fontSize:'0.72rem',letterSpacing:2,cursor:'pointer',borderRadius:4}}>
+                🔗 Share
               </button>
-              <a href="/" style={{ padding: '12px 28px', background: 'black', color: 'white', textDecoration: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', letterSpacing: 2, display: 'inline-block' }}>
+              <a href="/" style={{padding:'12px 26px',background:'#3b200a',color:'white',textDecoration:'none',fontFamily:'var(--font-typewriter)',fontSize:'0.72rem',letterSpacing:2,borderRadius:4,display:'inline-block'}}>
                 Create Your Own
               </a>
             </motion.div>
           )}
-        </div>
+        </motion.div>
 
-        {/* Right: decorative */}
-        <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.9, delay: 0.6 }}
-          style={{ flex: '0 0 160px', marginTop: 40, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 20 }}>
-          <img src="/flowers/sunflower.png" style={{ height: 200, objectFit: 'contain', opacity: 0.9 }} alt="Decoration" />
-          <img src="/flowers/lilly.png" style={{ height: 180, objectFit: 'contain', opacity: 0.8, transform: 'rotate(10deg)' }} alt="Decoration" />
+        {/* ── RIGHT PANEL ── */}
+        <motion.div initial={{opacity:0,x:30}} animate={{opacity:1,x:0}} transition={{duration:0.8,delay:0.3}}
+          style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* Flowers in this bouquet */}
+          {featuredFlowers.length > 0 && (
+            <div style={{ background:'white', borderRadius:12, padding:'20px 22px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc' }}>
+              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:16, display:'flex', alignItems:'center', gap:6 }}>🌿 Flowers in this Letter</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                {featuredFlowers.map(f => (
+                  <div key={f.id} style={{ display:'flex', alignItems:'center', gap:14 }}>
+                    <img src={`/flowers/${f.file}`} alt={f.name} style={{ width:52, height:52, objectFit:'contain', flexShrink:0, filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
+                    <div>
+                      <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.68rem', fontWeight:'bold', textTransform:'uppercase', letterSpacing:1, color:'#3b200a', margin:0 }}>{f.name}</p>
+                      <p style={{ fontFamily:'var(--font-body)', fontSize:'0.8rem', color:'#a06c3e', margin:'3px 0 0', lineHeight:1.4 }}>{MEANINGS[f.id] || 'A beautiful sentiment.'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quote card */}
+          <div style={{ background:'white', borderRadius:12, padding:'24px 22px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc', textAlign:'center' }}>
+            <div style={{ fontSize:'1.6rem', color:'#c9a96e', marginBottom:12 }}>"</div>
+            <p style={{ fontFamily:'var(--font-script)', fontSize:'1.15rem', color:'#3b200a', lineHeight:1.7, margin:0 }}>
+              Some feelings bloom in silence and speak through flowers.
+            </p>
+            <img src="/flowers/lilly.png" alt="" style={{ height:60, objectFit:'contain', opacity:0.35, marginTop:16 }} />
+          </div>
         </motion.div>
       </div>
     </div>
@@ -410,16 +441,16 @@ export default function ViewBouquetPage() {
 }
 
 const skipBtnStyle = {
-  position: 'fixed', top: 24, right: 24, zIndex: 1000,
-  padding: '10px 22px', border: '1px solid rgba(255,255,255,0.3)',
-  background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)',
-  color: 'white', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem',
-  letterSpacing: 2, cursor: 'pointer', textTransform: 'uppercase',
-  transition: 'all 0.2s',
+  position:'fixed', top:24, right:24, zIndex:1000,
+  padding:'10px 22px', border:'1px solid rgba(255,255,255,0.3)',
+  background:'rgba(0,0,0,0.3)', backdropFilter:'blur(8px)',
+  color:'white', fontFamily:'var(--font-typewriter)', fontSize:'0.75rem',
+  letterSpacing:2, cursor:'pointer', textTransform:'uppercase', transition:'all 0.2s',
 };
 
 const continueBtnStyle = {
-  padding: '14px 36px', border: '1px solid black', background: 'black',
-  color: 'white', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem',
-  letterSpacing: 3, cursor: 'pointer', textTransform: 'uppercase',
+  padding:'14px 36px', border:'1px solid black', background:'black',
+  color:'white', fontFamily:'var(--font-typewriter)', fontSize:'0.8rem',
+  letterSpacing:3, cursor:'pointer', textTransform:'uppercase',
 };
+
