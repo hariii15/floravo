@@ -59,34 +59,17 @@ function Logo({ light }) {
   );
 }
 
-// ── Leaf decorations for margins ───────────────────────────────────────
-function LeafDecorationLeft({ light }) {
+// ── Leaf sprig decoration for letter card corners ─────────────────────
+function LeafSprig({ style }) {
   return (
-    <div style={{ position: 'absolute', bottom: 0, left: 0, opacity: light ? 0.22 : 0.09, pointerEvents: 'none', transform: 'scale(1.2) translate(15px, 15px)' }}>
-      <svg width="220" height="320" viewBox="0 0 220 320" fill="none" stroke={light ? '#d4b97a' : '#3b200a'} strokeWidth="1">
-        <path d="M10 310 Q 80 220 70 20" />
-        <path d="M45 250 Q 100 220 120 200" />
-        <path d="M120 200 Q 100 180 55 220" />
-        <path d="M57 190 Q 120 160 140 130" />
-        <path d="M140 130 Q 110 110 65 160" />
-        <path d="M63 130 Q 120 90 130 60" />
-        <path d="M130 60 Q 100 40 67 100" />
-      </svg>
-    </div>
-  );
-}
-
-function LeafDecorationRight({ light }) {
-  return (
-    <div style={{ position: 'absolute', bottom: 0, right: 0, opacity: light ? 0.22 : 0.09, pointerEvents: 'none', transform: 'scale(1.2) translate(-15px, 15px) scaleX(-1)' }}>
-      <svg width="220" height="320" viewBox="0 0 220 320" fill="none" stroke={light ? '#d4b97a' : '#3b200a'} strokeWidth="1">
-        <path d="M10 310 Q 80 220 70 20" />
-        <path d="M45 250 Q 100 220 120 200" />
-        <path d="M120 200 Q 100 180 55 220" />
-        <path d="M57 190 Q 120 160 140 130" />
-        <path d="M140 130 Q 110 110 65 160" />
-        <path d="M63 130 Q 120 90 130 60" />
-        <path d="M130 60 Q 100 40 67 100" />
+    <div style={{ width: 44, height: 44, opacity: 0.45, ...style }}>
+      <svg width="100%" height="100%" viewBox="0 0 44 44" fill="none" stroke="#b08a5e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 38 C 12 34, 26 24, 38 6" />
+        <path d="M38 6 C 36 10, 31 11, 29 9 C 27 7, 28 2, 38 6 Z" />
+        <path d="M28 14 C 28 18, 23 18, 21 16 C 19 14, 21 10, 28 14 Z" />
+        <path d="M22 20 C 18 20, 16 23, 17 25 C 19 27, 21 24, 22 20 Z" />
+        <path d="M18 26 C 18 30, 13 30, 11 28 C 9 26, 11 22, 18 26 Z" />
+        <path d="M12 32 C 8 32, 6 35, 7 37 C 9 39, 11 36, 12 32 Z" />
       </svg>
     </div>
   );
@@ -209,8 +192,8 @@ export default function ViewBouquetPage() {
       </div>
 
       {/* Decorative leaf silhouettes */}
-      <LeafDecorationLeft light={false} />
-      <LeafDecorationRight light={false} />
+      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
 
       {particles.map(p => <FloralParticle key={p.key} file={p.file} left={p.left} top={p.top} size={p.size} delay={p.delay} duration={p.duration} />)}
       
@@ -250,6 +233,11 @@ export default function ViewBouquetPage() {
   // ── SCENE 1: Envelope ──────────────────────────────────────────────────
   if (scene === 1) return (
     <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+      
+      {/* Background Ornaments */}
+      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+
       <button onClick={skipToEnd} style={skipBtnStyle}>Skip ➔</button>
       <AnimatePresence>
         {!envelopeGone && (
@@ -259,7 +247,7 @@ export default function ViewBouquetPage() {
             animate={{ x: 0, rotate: [0, -4, 4, -3, 3, -1, 0] }}
             exit={{ opacity: 0, scale: 0.85, y: -30 }}
             transition={{ x: { duration: 1.2, ease: [0.22, 1, 0.36, 1] }, rotate: { duration: 0.8, delay: 1.2, times: [0,0.2,0.4,0.6,0.8,0.9,1] } }}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, zIndex: 10 }}>
             <motion.img src="/envelope.png" alt="Envelope" style={{ width: 320, filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.25))' }} />
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}
               style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', letterSpacing: 3, color: 'var(--sepia-light)', textTransform: 'uppercase' }}>
@@ -274,6 +262,11 @@ export default function ViewBouquetPage() {
   // ── SCENE 2: Letter with typewriter ───────────────────────────────────
   if (scene === 2) return (
     <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      
+      {/* Background Ornaments */}
+      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+
       <button onClick={skipToEnd} style={skipBtnStyle}>Skip ➔</button>
       <AnimatePresence>
         {!letterLeft && (
@@ -283,11 +276,17 @@ export default function ViewBouquetPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ x: '-60vw', rotate: -6, opacity: 0.6 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            style={{ background: 'white', border: '1px solid #e0d5c1', padding: '48px 52px', maxWidth: 520, width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.12)', position: 'relative', overflow: 'hidden', maxHeight: '70vh', overflowY: 'auto' }}>
+            style={{ background: '#fdfbf7', border: '1px solid #ede0cc', borderRadius: 24, padding: '48px 52px', maxWidth: 520, width: '90%', boxShadow: '0 16px 48px rgba(59,32,10,0.08)', position: 'relative', overflow: 'hidden', maxHeight: '70vh', overflowY: 'auto', zIndex: 10 }}>
+            
+            {/* Corner Leaf Sprigs */}
+            <LeafSprig style={{ position: 'absolute', top: 18, left: 18, transform: 'rotate(0deg)' }} />
+            <LeafSprig style={{ position: 'absolute', bottom: 18, right: 18, transform: 'scale(-1)' }} />
+
             {/* Lined paper effect */}
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #f0e8d8 31px, #f0e8d8 32px)', pointerEvents: 'none', opacity: 0.5 }} />
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <pre style={{ fontFamily: 'var(--font-typewriter)', fontSize: '1rem', color: '#3b200a', lineHeight: 2, whiteSpace: 'pre-wrap', margin: 0, minHeight: 200 }}>
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #ede0cc 31px, #ede0cc 32px)', pointerEvents: 'none', opacity: 0.6 }} />
+            
+            <div style={{ position: 'relative', zIndex: 1, paddingTop: 8 }}>
+              <pre style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.95rem', color: '#3b200a', lineHeight: '32px', whiteSpace: 'pre-wrap', margin: 0, minHeight: 220 }}>
                 {typedLetter}
                 <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.6, repeat: Infinity }}>|</motion.span>
               </pre>
@@ -299,7 +298,7 @@ export default function ViewBouquetPage() {
         <motion.button
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
           onClick={() => { setLetterLeft(true); setTimeout(() => setScene(3), 900); }}
-          style={{ position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)', ...continueBtnStyle }}>
+          style={{ position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)', ...continueBtnStyle, zIndex: 20 }}>
           Continue ➔
         </motion.button>
       )}
@@ -317,8 +316,8 @@ export default function ViewBouquetPage() {
       </div>
 
       {/* Decorative leaf silhouettes */}
-      <LeafDecorationLeft light={true} />
-      <LeafDecorationRight light={true} />
+      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.35, filter: 'brightness(0.9) contrast(1.1)' }} />
+      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.35, filter: 'brightness(0.9) contrast(1.1)' }} />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10 }}>
@@ -423,10 +422,14 @@ export default function ViewBouquetPage() {
   const sortedArr = sortedArranged(arranged);
 
   return (
-    <div style={{ minHeight:'100vh', background:'#f5ede0', fontFamily:'var(--font-body)' }}>
+    <div style={{ minHeight:'100vh', background:'#f5ede0', fontFamily:'var(--font-body)', position: 'relative', overflow: 'hidden' }}>
+
+      {/* Background Ornaments */}
+      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
 
       {/* ── TOP BAR ── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 40px', borderBottom:'1px solid #e8d9c8', background:'#f5ede0' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 40px', borderBottom:'1px solid #e8d9c8', background:'#f5ede0', position: 'relative', zIndex: 10 }}>
         <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo" style={{ height:44, objectFit:'contain' }} />
         <div style={{ textAlign:'center' }}>
           <h1 style={{ fontFamily:'var(--font-script)', fontSize:'2.4rem', color:'#3b200a', margin:0, lineHeight:1 }}>A Special Correspondence</h1>
@@ -438,7 +441,7 @@ export default function ViewBouquetPage() {
       </div>
 
       {/* ── THREE COLUMNS ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'280px 1fr 280px', gap:24, maxWidth:1280, margin:'0 auto', padding:'28px 32px 60px', alignItems:'start' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'280px 1fr 280px', gap:24, maxWidth:1280, margin:'0 auto', padding:'28px 32px 60px', alignItems:'start', position: 'relative', zIndex: 10 }}>
 
         {/* ── LEFT PANEL ── */}
         <motion.div initial={{opacity:0,x:-30}} animate={{opacity:1,x:0}} transition={{duration:0.8,delay:0.2}}
@@ -446,9 +449,12 @@ export default function ViewBouquetPage() {
 
           {/* Note card */}
           {noteText && (
-            <div style={{ background:'white', borderRadius:12, padding:'20px 22px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc' }}>
-              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:14, display:'flex', alignItems:'center', gap:6 }}>🌿 Your Note</p>
-              <div style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.8rem', color:'#3b200a', lineHeight:2, whiteSpace:'pre-wrap' }}>
+            <div style={{ background:'#fdfbf7', borderRadius:24, padding:'24px 28px', boxShadow:'0 4px 20px rgba(59,32,10,0.06)', border:'1px solid #ede0cc', position: 'relative', overflow: 'hidden' }}>
+              <LeafSprig style={{ position: 'absolute', top: 10, left: 10, width: 28, height: 28, opacity: 0.35 }} />
+              <LeafSprig style={{ position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, opacity: 0.35, transform: 'scale(-1)' }} />
+              
+              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:14, display:'flex', alignItems:'center', gap:6, position: 'relative', zIndex: 2 }}>🌿 Your Note</p>
+              <div style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.8rem', color:'#3b200a', lineHeight:2, whiteSpace:'pre-wrap', position: 'relative', zIndex: 2 }}>
                 {`Dear ${noteRecipient},\n\n${noteText}\n\nSincerely,\n${noteSender}`}
               </div>
             </div>
@@ -457,7 +463,7 @@ export default function ViewBouquetPage() {
           {/* Polaroid */}
           {polaroidImage && (
             <div style={{ background:'white', borderRadius:12, padding:'16px 18px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc' }}>
-              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:12 }}>👤 From You</p>
+              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:12 }}>From You</p>
               <img src={polaroidImage} alt="Polaroid" style={{ width:'100%', height: '200px', aspectRatio: '1 / 1', borderRadius:6, objectFit:'cover', display:'block', filter:'sepia(0.15) contrast(1.05) brightness(1.04)' }} />
             </div>
           )}
@@ -528,7 +534,7 @@ export default function ViewBouquetPage() {
           {/* Flowers in this bouquet */}
           {featuredFlowers.length > 0 && (
             <div style={{ background:'white', borderRadius:12, padding:'20px 22px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc' }}>
-              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:16, display:'flex', alignItems:'center', gap:6 }}>🌿 Flowers in this Letter</p>
+              <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:16, display:'flex', alignItems:'center', gap:6 }}>Flowers in this Letter</p>
               <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                 {featuredFlowers.map(f => (
                   <div key={f.id} style={{ display:'flex', alignItems:'center', gap:14 }}>

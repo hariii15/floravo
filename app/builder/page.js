@@ -6,6 +6,21 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { logOut } from '../../lib/auth';
 
+function LeafSprig({ style }) {
+  return (
+    <div style={{ width: 44, height: 44, opacity: 0.45, ...style }}>
+      <svg width="100%" height="100%" viewBox="0 0 44 44" fill="none" stroke="#b08a5e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 38 C 12 34, 26 24, 38 6" />
+        <path d="M38 6 C 36 10, 31 11, 29 9 C 27 7, 28 2, 38 6 Z" />
+        <path d="M28 14 C 28 18, 23 18, 21 16 C 19 14, 21 10, 28 14 Z" />
+        <path d="M22 20 C 18 20, 16 23, 17 25 C 19 27, 21 24, 22 20 Z" />
+        <path d="M18 26 C 18 30, 13 30, 11 28 C 9 26, 11 22, 18 26 Z" />
+        <path d="M12 32 C 8 32, 6 35, 7 37 C 9 39, 11 36, 12 32 Z" />
+      </svg>
+    </div>
+  );
+}
+
 const FLOWERS = [
   { id: 'rose',           name: 'Rose',           file: 'rose.png',           category: 'primary' },
   { id: 'sunflower',      name: 'Sunflower',       file: 'sunflower.png',      category: 'primary' },
@@ -561,8 +576,13 @@ export default function BuilderPage() {
 
   if (currentStep === 'personalize') {
     return (
-      <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-        <div style={{ padding: '40px 0 20px' }}>
+      <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+        
+        {/* Background Ornaments */}
+        <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+        <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+
+        <div style={{ padding: '40px 0 20px', position: 'relative', zIndex: 10 }}>
           <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 60, objectFit: 'contain' }} />
         </div>
         
@@ -575,28 +595,38 @@ export default function BuilderPage() {
              <img src="/flowers/lilly.png" style={{ height: 300, objectFit: 'contain' }} alt="Decoration" />
           </div>
           
-          <div style={{ border: '2px solid black', background: 'white', padding: '40px', width: 420, minHeight: 400, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
-               <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Dear </div>
-               <input 
-                 value={noteRecipient} 
-                 onChange={e => setNoteRecipient(e.target.value)} 
-                 style={{ border: 'none', borderBottom: '1px dashed #ccc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#888', marginLeft: 8, flex: 1, background: 'transparent' }}
+          <div style={{ background: '#fdfbf7', border: '1px solid #ede0cc', borderRadius: 24, padding: '40px 48px', width: 420, minHeight: 400, display: 'flex', flexDirection: 'column', boxShadow: '0 16px 48px rgba(59,32,10,0.06)', position: 'relative', overflow: 'hidden' }}>
+             
+             {/* Corner Leaf Sprigs */}
+             <LeafSprig style={{ position: 'absolute', top: 18, left: 18, transform: 'rotate(0deg)' }} />
+             <LeafSprig style={{ position: 'absolute', bottom: 18, right: 18, transform: 'scale(-1)' }} />
+
+             {/* Lined paper effect */}
+             <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #ede0cc 31px, #ede0cc 32px)', pointerEvents: 'none', opacity: 0.6 }} />
+
+             <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%', flex: 1, paddingTop: 8 }}>
+               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+                 <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#3b200a' }}>Dear </div>
+                 <input 
+                   value={noteRecipient} 
+                   onChange={e => setNoteRecipient(e.target.value)} 
+                   style={{ border: 'none', borderBottom: '1px dashed #ede0cc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#3b200a', marginLeft: 8, flex: 1, background: 'transparent' }}
+                 />
+                 <span className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#3b200a' }}>,</span>
+               </div>
+               <textarea 
+                 value={noteText} onChange={e => setNoteText(e.target.value)}
+                 maxLength={120}
+                 style={{ flex: 1, border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.05rem', color: '#3b200a', lineHeight: '32px', background: 'transparent' }}
+                 placeholder="I have so much to tell you, but only this much space on this card! Still, you must know..."
                />
-               <span className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>,</span>
+               <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'right', marginTop: 20, color: '#3b200a' }}>Sincerely,</div>
+               <input 
+                 value={noteSender} 
+                 onChange={e => setNoteSender(e.target.value)}
+                 style={{ border: 'none', borderBottom: '1px dashed #ede0cc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#3b200a', textAlign: 'right', background: 'transparent', width: '100%', marginTop: 4 }}
+               />
              </div>
-             <textarea 
-               value={noteText} onChange={e => setNoteText(e.target.value)}
-               maxLength={120}
-               style={{ flex: 1, border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.1rem', color: '#555', lineHeight: 1.8 }}
-               placeholder="I have so much to tell you, but only this much space on this card! Still, you must know..."
-             />
-             <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'right', marginTop: 20 }}>Sincerely,</div>
-             <input 
-               value={noteSender} 
-               onChange={e => setNoteSender(e.target.value)}
-               style={{ border: 'none', borderBottom: '1px dashed #ccc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#888', textAlign: 'right', background: 'transparent', width: '100%', marginTop: 4 }}
-             />
           </div>
 
           <div style={{ flex: 1.3, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
@@ -674,8 +704,13 @@ export default function BuilderPage() {
 
   if (currentStep === 'review') {
     return (
-       <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-          <div style={{ padding: '40px 0 20px' }}>
+       <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+          
+          {/* Background Ornaments */}
+          <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+          <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
+
+          <div style={{ padding: '40px 0 20px', position: 'relative', zIndex: 10 }}>
             <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 60, objectFit: 'contain' }} />
           </div>
           
@@ -706,13 +741,16 @@ export default function BuilderPage() {
                 ))}
 
                 {noteText && arranged.length > 0 && (
-                  <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))', pointerEvents: 'none' }}>
-                    <div style={{ background: '#fdf6e3', width: 220, height: 130, padding: 16, border: '1px solid #e0d5c1', position: 'relative', overflow: 'hidden' }}>
-                      <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#5c4d3c', fontWeight: 'bold', marginBottom: 8 }}>Dear {noteRecipient},</div>
-                      <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
+                  <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.15))', pointerEvents: 'none' }}>
+                    <div style={{ background: '#fdfbf7', width: 220, height: 130, padding: 16, border: '1px solid #ede0cc', borderRadius: 16, position: 'relative', overflow: 'hidden' }}>
+                      <LeafSprig style={{ position: 'absolute', top: 6, left: 6, width: 22, height: 22, opacity: 0.35 }} />
+                      <LeafSprig style={{ position: 'absolute', bottom: 6, right: 6, width: 22, height: 22, opacity: 0.35, transform: 'scale(-1)' }} />
+                      
+                      <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#3b200a', fontWeight: 'bold', marginBottom: 8, position: 'relative', zIndex: 1 }}>Dear {noteRecipient},</div>
+                      <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#3b200a', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap', position: 'relative', zIndex: 1 }}>
                         {noteText.split('\n').slice(0, 4).join('\n')}
                       </div>
-                      <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', fontWeight: 'bold', marginTop: 8, textAlign: 'right' }}>Sincerely, {noteSender}</div>
+                      <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#3b200a', fontWeight: 'bold', marginTop: 8, textAlign: 'right', position: 'relative', zIndex: 1 }}>Sincerely, {noteSender}</div>
                     </div>
                   </div>
                 )}
@@ -908,13 +946,16 @@ export default function BuilderPage() {
 
             {/* Note Card Overlay */}
             {noteText && arranged.length > 0 && (
-              <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.2))', pointerEvents: 'none' }}>
-                <div style={{ background: '#fdf6e3', width: 220, height: 130, padding: 16, border: '1px solid #e0d5c1', position: 'relative', overflow: 'hidden' }}>
-                  <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#5c4d3c', fontWeight: 'bold', marginBottom: 8 }}>Dear {noteRecipient},</div>
-                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
+              <div style={{ position: 'absolute', bottom: 30, left: 20, zIndex: 100, transform: 'rotate(-4deg)', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.15))', pointerEvents: 'none' }}>
+                <div style={{ background: '#fdfbf7', width: 220, height: 130, padding: 16, border: '1px solid #ede0cc', borderRadius: 16, position: 'relative', overflow: 'hidden' }}>
+                  <LeafSprig style={{ position: 'absolute', top: 6, left: 6, width: 22, height: 22, opacity: 0.35 }} />
+                  <LeafSprig style={{ position: 'absolute', bottom: 6, right: 6, width: 22, height: 22, opacity: 0.35, transform: 'scale(-1)' }} />
+                  
+                  <div className="font-typewriter" style={{ fontSize: '0.8rem', color: '#3b200a', fontWeight: 'bold', marginBottom: 8, position: 'relative', zIndex: 1 }}>Dear {noteRecipient},</div>
+                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#3b200a', lineHeight: 1.5, wordWrap: 'break-word', whiteSpace: 'pre-wrap', position: 'relative', zIndex: 1 }}>
                     {noteText.split('\n').slice(0, 4).join('\n')}
                   </div>
-                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#5c4d3c', fontWeight: 'bold', marginTop: 8, textAlign: 'right' }}>Sincerely, {noteSender}</div>
+                  <div className="font-typewriter" style={{ fontSize: '0.75rem', color: '#3b200a', fontWeight: 'bold', marginTop: 8, textAlign: 'right', position: 'relative', zIndex: 1 }}>Sincerely, {noteSender}</div>
                 </div>
               </div>
             )}
