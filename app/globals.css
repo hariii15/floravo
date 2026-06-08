@@ -627,7 +627,6 @@ html, body {
 }
 
 .builder-topbar::after {
-  content: '❧ Royal Bouquet Atelier ❧';
   position: absolute;
   left: 50%;
   transform: translateX(-50%);

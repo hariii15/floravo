@@ -173,6 +173,8 @@ export default function BuilderPage() {
   const [recordingVoice, setRecordingVoice] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [currentStep, setCurrentStep] = useState('arrange');
+  const [saving, setSaving] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
   const canvasRef = useRef(null);
   const dragRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -361,22 +363,7 @@ export default function BuilderPage() {
     });
 
     try {
-      if (arranged.length > 0) {
-        const bgImg = await loadImage('/flowers/bg_abstract.png');
-        ctx.save();
-        ctx.translate(280, 320);
-        ctx.globalAlpha = 0.5;
-        const size = 2200;
 
-        ctx.drawImage(
-          bgImg,
-          -size / 2,
-          -size / 2,
-          size,
-          size
-        );
-        ctx.restore();
-      }
 
       const flowerImages = await Promise.all(
         sorted.map(item => loadImage(`/flowers/${item.flower.file}`))
@@ -475,6 +462,66 @@ export default function BuilderPage() {
     a.download = 'my-bouquet.png';
     a.href = canvas.toDataURL('image/png');
     a.click();
+  };
+
+  const saveAndShareBouquet = async () => {
+    setSaving(true);
+    setShareUrl('');
+    try {
+      let voiceNoteBase64 = null;
+      if (voiceClip) {
+        voiceNoteBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(voiceClip);
+        });
+      }
+
+      const payload = {
+        noteRecipient,
+        noteSender,
+        noteText,
+        arranged: arranged.map(item => ({
+          id: item.id,
+          flower: {
+            id: item.flower.id,
+            name: item.flower.name,
+            file: item.flower.file,
+            category: item.flower.category,
+          },
+          x: item.x,
+          y: item.y,
+          scale: item.scale,
+          rotation: item.rotation,
+          layer: item.layer,
+          isBg: !!item.isBg,
+          isSeam: !!item.isSeam,
+        })),
+        polaroidImage,
+        voiceNote: voiceNoteBase64,
+      };
+
+      const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiHost}/api/bouquets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+        setShareUrl(`${origin}/view/${data.id}`);
+      } else {
+        alert('Failed to save: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('Error connecting to the backend server. Make sure the backend server is running on port 5000.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSignOut = async () => { await logOut(); router.replace('/'); };
@@ -652,10 +699,31 @@ export default function BuilderPage() {
             <button className="control-btn" onClick={() => setCurrentStep('personalize')} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px' }}>
                Back to Card
             </button>
+            <button className="control-btn" onClick={saveAndShareBouquet} disabled={saving} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px' }}>
+               {saving ? 'Saving...' : '🔗 Save & Share'}
+            </button>
             <button className="btn-primary" onClick={exportPNG} style={{ padding: '12px 32px', fontSize: '1rem', letterSpacing: '1px' }}>
               <span className="icon">📥</span> Export Final Bouquet
             </button>
           </div>
+
+          {shareUrl && (
+            <div style={{ marginTop: 24, padding: '16px', border: '1px solid black', background: 'white', fontFamily: 'var(--font-typewriter)', textAlign: 'center', width: '100%', maxWidth: 450 }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', marginBottom: 8 }}>BOUQUET SAVED SUCCESSFULLY!</div>
+              <div style={{ fontSize: '0.7rem', color: '#555', wordBreak: 'break-all', padding: '8px', background: '#f9f0dc', border: '1px dashed #ccc', marginBottom: 12 }}>
+                {shareUrl}
+              </div>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(shareUrl);
+                  alert('Link copied to clipboard!');
+                }}
+                style={{ padding: '6px 16px', background: 'black', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}
+              >
+                Copy Link
+              </button>
+            </div>
+          )}
 
             {voicePreviewUrl && (
               <div style={{ marginTop: 18, width: 280, background: 'rgba(255,255,255,0.55)', border: '1px solid var(--parchment-deep)', padding: '14px 16px', textAlign: 'left' }}>
@@ -767,10 +835,7 @@ export default function BuilderPage() {
         {/* ── CENTER: CANVAS ── */}
         <div className="builder-canvas-area" style={{ flexDirection: 'column' }}>
           <div ref={canvasRef} className="bouquet-canvas" onClick={() => setActiveFlower(null)}>
-            {/* Background Shape */}
-            {arranged.length > 0 && (
-              <img src="/flowers/bg_abstract.png" alt="Background Shape" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 800, height: 800, objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.7 }} />
-            )}
+
 
             {arranged.length === 0 && (
               <div className="canvas-placeholder">
