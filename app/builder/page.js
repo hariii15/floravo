@@ -374,8 +374,21 @@ export default function BuilderPage() {
         ctx.save();
         ctx.translate(item.x, item.y);
         ctx.rotate((item.rotation * Math.PI) / 180);
-        const sz = BASE_FLOWER_SIZE * item.scale;
-        ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
+        
+        const base = item.isBg ? BG_SIZE : BASE_SIZE;
+        const sz = base * item.scale;
+        
+        // Emulate CSS object-fit: contain for canvas
+        let dw = sz;
+        let dh = sz;
+        const imgRatio = img.width / img.height;
+        if (imgRatio > 1) {
+          dh = sz / imgRatio;
+        } else if (imgRatio < 1) {
+          dw = sz * imgRatio;
+        }
+        
+        ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
         ctx.restore();
       });
 
@@ -423,7 +436,19 @@ export default function BuilderPage() {
         ctx.fillStyle = '#e0e0e0';
         ctx.fillRect(12, 12, 136, 136);
         ctx.filter = 'sepia(20%) contrast(105%) brightness(105%) saturate(90%) hue-rotate(-5deg)';
-        ctx.drawImage(pImg, 12, 12, 136, 136);
+        
+        // Emulate CSS object-fit: cover for canvas
+        const imgRatio = pImg.width / pImg.height;
+        let sx = 0, sy = 0, sw = pImg.width, sh = pImg.height;
+        if (imgRatio > 1) { // 1 is containerRatio (136/136)
+          sw = pImg.height;
+          sx = (pImg.width - sw) / 2;
+        } else {
+          sh = pImg.width;
+          sy = (pImg.height - sh) / 2;
+        }
+        
+        ctx.drawImage(pImg, sx, sy, sw, sh, 12, 12, 136, 136);
         ctx.filter = 'none';
         
         ctx.restore();
