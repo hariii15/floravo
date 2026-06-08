@@ -341,7 +341,7 @@ export default function ViewBouquetPage() {
           {polaroidImage && (
             <div style={{ background:'white', borderRadius:12, padding:'16px 18px', boxShadow:'0 2px 16px rgba(0,0,0,0.06)', border:'1px solid #ede0cc' }}>
               <p style={{ fontFamily:'var(--font-typewriter)', fontSize:'0.58rem', letterSpacing:3, textTransform:'uppercase', color:'#a06c3e', marginBottom:12 }}>👤 From You</p>
-              <img src={polaroidImage} alt="Polaroid" style={{ width:'100%', height: 200, borderRadius:6, objectFit:'cover', display:'block', filter:'sepia(0.15) contrast(1.05) brightness(1.04)' }} />
+              <img src={polaroidImage} alt="Polaroid" style={{ width:'100%', height: '200px', aspectRatio: '1 / 1', borderRadius:6, objectFit:'cover', display:'block', filter:'sepia(0.15) contrast(1.05) brightness(1.04)' }} />
             </div>
           )}
 
