@@ -168,9 +168,15 @@ export default function BuilderPage() {
   const [noteRecipient, setNoteRecipient] = useState('Beloved');
   const [noteSender, setNoteSender] = useState('Secret Admirer');
   const [polaroidImage, setPolaroidImage] = useState(null);
+  const [voiceClip, setVoiceClip] = useState(null);
+  const [voicePreviewUrl, setVoicePreviewUrl] = useState('');
+  const [recordingVoice, setRecordingVoice] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const [currentStep, setCurrentStep] = useState('arrange');
   const canvasRef = useRef(null);
   const dragRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const voiceChunksRef = useRef([]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -179,6 +185,77 @@ export default function BuilderPage() {
       reader.onload = (event) => setPolaroidImage(event.target.result);
       reader.readAsDataURL(file);
     }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
+    };
+  }, [voicePreviewUrl]);
+
+  const clearVoiceNote = () => {
+    if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
+    setVoiceClip(null);
+    setVoicePreviewUrl('');
+    setVoiceError('');
+    setRecordingVoice(false);
+    voiceChunksRef.current = [];
+    mediaRecorderRef.current = null;
+  };
+
+  const startVoiceRecording = async () => {
+    setVoiceError('');
+
+    if (!navigator?.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setVoiceError('Voice notes are not supported in this browser.');
+      return;
+    }
+
+    try {
+      if (voicePreviewUrl) {
+        URL.revokeObjectURL(voicePreviewUrl);
+        setVoicePreviewUrl('');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      voiceChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) voiceChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(voiceChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setVoiceClip(blob);
+        setVoicePreviewUrl(url);
+        setRecordingVoice(false);
+        voiceChunksRef.current = [];
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorderRef.current = recorder;
+      setRecordingVoice(true);
+      recorder.start();
+    } catch (error) {
+      setVoiceError(error?.name === 'NotAllowedError'
+        ? 'Microphone permission was denied.'
+        : 'Could not start voice recording.');
+      setRecordingVoice(false);
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+  };
+
+  const toggleVoiceRecording = () => {
+    if (recordingVoice) stopVoiceRecording();
+    else startVoiceRecording();
   };
 
   useEffect(() => {
@@ -265,7 +342,7 @@ export default function BuilderPage() {
     ));
   };
 
-  const clearAll = () => { setArranged([]); setSelectedFlowers([]); setActiveFlower(null); };
+  const clearAll = () => { setArranged([]); setSelectedFlowers([]); setActiveFlower(null); clearVoiceNote(); };
 
   const exportPNG = async () => {
     const canvas = document.createElement('canvas');
@@ -365,6 +442,28 @@ export default function BuilderPage() {
         ctx.restore();
       }
 
+      if (voicePreviewUrl) {
+        ctx.save();
+        ctx.translate(430, 230);
+        ctx.rotate((6 * Math.PI) / 180);
+        ctx.fillStyle = '#fff7e8';
+        ctx.shadowColor = 'rgba(0,0,0,0.18)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 6;
+        ctx.fillRect(0, 0, 112, 34);
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#d5c29f';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, 0, 112, 34);
+        ctx.fillStyle = '#5c4d3c';
+        ctx.font = 'bold 10px Courier New';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('VOICE NOTE', 12, 14);
+        ctx.fillText('ATTACHED', 12, 24);
+        ctx.restore();
+      }
+
       download(canvas);
     } catch (e) {
       console.error("Export failed", e);
@@ -431,7 +530,7 @@ export default function BuilderPage() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
             <img src="/flowers/sunflower.png" style={{ height: 240, objectFit: 'contain', opacity: 0.9 }} alt="Decoration" />
             
-            <div style={{ textAlign: 'center', width: '100%', maxWidth: 200, paddingLeft: 20 }}>
+            <div style={{ textAlign: 'center', width: '100%', maxWidth: 220, paddingLeft: 20 }}>
               {!polaroidImage ? (
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '1px solid black', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', background: 'white' }}>
                   <span>📷 Add Polaroid</span>
@@ -447,6 +546,48 @@ export default function BuilderPage() {
                   </button>
                 </div>
               )}
+            </div>
+
+            <div style={{ width: '100%', maxWidth: 220, paddingLeft: 20 }}>
+              <div style={{ border: '1px solid black', background: 'white', padding: '14px 14px 12px', fontFamily: 'var(--font-typewriter)' }}>
+                <div style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8, color: 'var(--sepia-light)' }}>
+                  Voice Message
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleVoiceRecording}
+                  style={{ width: '100%', border: '1px solid black', background: recordingVoice ? 'black' : 'transparent', color: recordingVoice ? 'white' : 'black', padding: '10px 12px', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', letterSpacing: '1px' }}
+                >
+                  {recordingVoice ? 'Stop Recording' : voicePreviewUrl ? 'Re-record Voice' : 'Record Voice'}
+                </button>
+                {voicePreviewUrl && (
+                  <audio controls src={voicePreviewUrl} style={{ width: '100%', marginTop: 10 }} />
+                )}
+                {voiceClip && (
+                  <div style={{ marginTop: 8, color: 'var(--sepia-light)', fontSize: '0.68rem', lineHeight: 1.5 }}>
+                    Voice clip captured and ready to attach.
+                  </div>
+                )}
+                {voicePreviewUrl && (
+                  <button
+                    type="button"
+                    onClick={clearVoiceNote}
+                    style={{ marginTop: 8, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--postal-red)' }}
+                  >
+                    Remove voice note
+                  </button>
+                )}
+                {voiceError && (
+                  <div style={{ marginTop: 8, color: 'var(--postal-red)', fontSize: '0.7rem', lineHeight: 1.4 }}>
+                    {voiceError}
+                  </div>
+                )}
+                {!voicePreviewUrl && !voiceError && (
+                  <div style={{ marginTop: 8, color: 'var(--sepia-light)', fontSize: '0.68rem', lineHeight: 1.5 }}>
+                    Record a short voice note to accompany the bouquet.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -497,6 +638,14 @@ export default function BuilderPage() {
                 </div>
               </div>
             )}
+
+            {voicePreviewUrl && arranged.length > 0 && (
+              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 102, transform: 'rotate(4deg)', pointerEvents: 'none' }}>
+                <div style={{ background: '#fff7e8', border: '1px solid #d5c29f', padding: '8px 12px', boxShadow: '0 8px 18px rgba(0,0,0,0.14)', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', letterSpacing: '1px', color: '#5c4d3c' }}>
+                  VOICE NOTE ATTACHED
+                </div>
+              </div>
+            )}
           </div>
           
           <div style={{ display: 'flex', gap: 16, marginTop: 32 }}>
@@ -507,6 +656,15 @@ export default function BuilderPage() {
               <span className="icon">📥</span> Export Final Bouquet
             </button>
           </div>
+
+            {voicePreviewUrl && (
+              <div style={{ marginTop: 18, width: 280, background: 'rgba(255,255,255,0.55)', border: '1px solid var(--parchment-deep)', padding: '14px 16px', textAlign: 'left' }}>
+                <div className="font-typewriter" style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--sepia-light)', marginBottom: 8 }}>
+                  Voice Preview
+                </div>
+                <audio controls src={voicePreviewUrl} style={{ width: '100%' }} />
+              </div>
+            )}
        </div>
     );
   }
