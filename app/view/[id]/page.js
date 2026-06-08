@@ -2,22 +2,21 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useAnimationFrame } from 'framer-motion';
 
 const BASE_SIZE = 200;
 const BG_SIZE = 320;
 
 // ── Floral particle for scene 1
-function FloralParticle({ style }) {
-  const emojis = ['🌸','🌺','🌹','🌼','🌻','💐','🌷'];
-  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+const PETAL_FILES = ['pink_tulip.png','tulip_white.png','yellow_tulip.png','carnation_pink.png','carnation_red.png','gergebra_pink.png','gergebra_orange.png'];
+function FloralParticle({ file, left, top, size, delay, duration }) {
   return (
     <motion.div
-      style={{ position: 'absolute', fontSize: `${Math.random() * 2 + 1}rem`, filter: 'blur(2px)', opacity: 0, ...style }}
-      animate={{ opacity: [0, 0.4, 0], y: [0, -80], rotate: [0, 30] }}
-      transition={{ duration: Math.random() * 4 + 3, repeat: Infinity, delay: Math.random() * 4, ease: 'easeInOut' }}
+      style={{ position: 'absolute', left, top, width: size, height: size, filter: 'blur(2.5px)', opacity: 0, pointerEvents: 'none' }}
+      animate={{ opacity: [0, 0.55, 0], y: [0, -120], rotate: [0, 40], scale: [1, 1.1, 0.9] }}
+      transition={{ duration, repeat: Infinity, delay, ease: 'easeInOut' }}
     >
-      {emoji}
+      <img src={`/flowers/${file}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
     </motion.div>
   );
 }
@@ -53,8 +52,25 @@ export default function ViewBouquetPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [bloomedItems, setBloomedItems] = useState([]);
   const audioRef = useRef(null);
-  const particles = useRef(Array.from({ length: 18 }, (_, i) => ({
-    left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, key: i
+  const vinylAudioRef = useRef(null);
+  const [finalVinylPlaying, setFinalVinylPlaying] = useState(false);
+  const finalVinylRot = useMotionValue(0);
+  useAnimationFrame((_, delta) => {
+    if (finalVinylPlaying) finalVinylRot.set(finalVinylRot.get() + delta * 0.06);
+  });
+  // Vinyl rotation for scene 3 — frame-driven, no seam, true pause
+  const vinylRot = useMotionValue(0);
+  useAnimationFrame((_, delta) => {
+    if (isPlaying) vinylRot.set(vinylRot.get() + delta * 0.06);
+  });
+  const particles = useRef(Array.from({ length: 22 }, (_, i) => ({
+    file: PETAL_FILES[i % PETAL_FILES.length],
+    left: `${(i * 4.5 + Math.random() * 5) % 100}%`,
+    top: `${Math.random() * 90}%`,
+    size: Math.floor(Math.random() * 40 + 28),
+    delay: Math.random() * 5,
+    duration: Math.random() * 5 + 5,
+    key: i,
   }))).current;
 
   const fullLetterText = bouquet ? `Dear ${bouquet.noteRecipient},\n\n${bouquet.noteText}\n\nSincerely,\n${bouquet.noteSender}` : '';
@@ -78,7 +94,7 @@ export default function ViewBouquetPage() {
   // Auto-advance scene 0 → 1
   useEffect(() => {
     if (scene !== 0 || loading || error) return;
-    const t = setTimeout(() => setScene(1), 3200);
+    const t = setTimeout(() => setScene(1), 5500);
     return () => clearTimeout(t);
   }, [scene, loading, error]);
 
@@ -134,17 +150,23 @@ export default function ViewBouquetPage() {
   if (scene === 0) return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a0f07 0%, #3b1f0a 50%, #1a0f07 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
       <button onClick={skipToEnd} style={skipBtnStyle}>Skip ➔</button>
-      {particles.map(p => <FloralParticle key={p.key} style={{ left: p.left, top: p.top }} />)}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2, ease: 'easeOut' }}
+      {particles.map(p => <FloralParticle key={p.key} file={p.file} left={p.left} top={p.top} size={p.size} delay={p.delay} duration={p.duration} />)}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2.5, ease: 'easeOut' }}
         style={{ textAlign: 'center', zIndex: 10, padding: 40 }}>
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 1.5, delay: 0.5 }}
-          style={{ fontSize: '4rem', marginBottom: 32 }}>💐</motion.div>
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.5, delay: 1 }}
-          style={{ fontFamily: 'var(--font-script)', fontSize: '1.8rem', color: '#f2e4c0', letterSpacing: 2, lineHeight: 1.6, maxWidth: 520 }}>
+        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 2, delay: 0.5, ease: [0.22,1,0.36,1] }}
+          style={{ width: 140, height: 140, margin: '0 auto 32px', filter: 'drop-shadow(0 12px 40px rgba(212,185,122,0.4))' }}>
+          <img src="/flowers/penoy.png" alt="Peony" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </motion.div>
+        <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 2, delay: 1.2 }}
+          style={{ fontFamily: 'var(--font-script)', fontSize: '2rem', color: '#f2e4c0', letterSpacing: 2, lineHeight: 1.7, maxWidth: 540 }}>
           Someone special has created something for you...
         </motion.p>
-        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.2, delay: 2.2 }}
-          style={{ height: 1, background: 'linear-gradient(90deg,transparent,#d4b97a,transparent)', marginTop: 40 }} />
+        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.6, delay: 3 }}
+          style={{ height: 1, background: 'linear-gradient(90deg,transparent,#d4b97a,transparent)', marginTop: 48 }} />
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.6, duration: 1 }}
+          style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.65rem', color: '#a06c3e', letterSpacing: 4, marginTop: 20, textTransform: 'uppercase' }}>
+          — via Floravo Atelier —
+        </motion.p>
       </motion.div>
     </div>
   );
@@ -216,38 +238,36 @@ export default function ViewBouquetPage() {
         style={{ fontFamily: 'var(--font-script)', fontSize: '1.4rem', color: '#d4b97a', letterSpacing: 2 }}>
         A voice note awaits…
       </motion.p>
-      <motion.div initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setIsPlaying(p => !p)}>
+      <motion.div initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+        {/* Vinyl disc — rotation driven by useAnimationFrame, no seam */}
         <motion.img
           src="/vinyl.png" alt="Vinyl"
-          style={{ width: 260, height: 260, borderRadius: '50%', filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.6))' }}
-          animate={{ rotate: isPlaying ? 360 : 0 }}
-          transition={{ rotate: { duration: 3, ease: 'linear', repeat: Infinity } }}
+          style={{ width: 260, height: 260, borderRadius: '50%', filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.7))', rotate: vinylRot }}
         />
-        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          whileHover={{ scale: 1.1 }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(253,246,227,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
-            {isPlaying ? '⏸' : '▶'}
-          </div>
-        </motion.div>
+        {/* Play/Pause button BELOW the vinyl */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            const next = !isPlaying;
+            setIsPlaying(next);
+            if (audioRef.current) { next ? audioRef.current.play().catch(()=>{}) : audioRef.current.pause(); }
+          }}
+          style={{ marginTop: 28, width: 64, height: 64, borderRadius: '50%', background: 'rgba(253,246,227,0.95)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
+          {isPlaying ? '⏸' : '▶'}
+        </motion.button>
+        {!voiceNote && (
+          <p style={{ fontFamily: 'var(--font-typewriter)', color: '#a06c3e', fontSize: '0.75rem', letterSpacing: 2, marginTop: 16 }}>No voice note attached</p>
+        )}
       </motion.div>
       {voiceNote && (
-        <audio
-          src={voiceNote}
-          onEnded={() => setIsPlaying(false)}
-          style={{ display: 'none' }}
-          ref={el => {
-            audioRef.current = el;
-            if (el) { if (isPlaying) el.play().catch(() => {}); else el.pause(); }
-          }}
-        />
-      )}
-      {!voiceNote && (
-        <p style={{ fontFamily: 'var(--font-typewriter)', color: '#a06c3e', fontSize: '0.75rem', letterSpacing: 2 }}>No voice note attached</p>
+        <audio src={voiceNote} onEnded={() => setIsPlaying(false)} style={{ display: 'none' }}
+          ref={el => { audioRef.current = el; }} />
       )}
       <motion.button
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-        onClick={() => { setIsPlaying(false); setScene(4); }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
+        onClick={() => { setIsPlaying(false); if(audioRef.current) audioRef.current.pause(); setScene(4); }}
         style={continueBtnStyle}>
         Reveal the Bouquet ➔
       </motion.button>
@@ -293,9 +313,22 @@ export default function ViewBouquetPage() {
           )}
           {voiceNote && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-              style={{ marginTop: 20, background: 'white', border: '1px solid black', padding: '14px 16px' }}>
-              <p style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.65rem', letterSpacing: 2, textTransform: 'uppercase', color: 'var(--ink-brown)', marginBottom: 8, fontWeight: 'bold' }}>▶ Voice Note</p>
-              <audio controls src={voiceNote} style={{ width: '100%' }} />
+              style={{ marginTop: 20, background: '#1a0f07', border: '1px solid #3b1f0a', padding: '20px 20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, borderRadius: 4 }}>
+              <p style={{ fontFamily: 'var(--font-typewriter)', fontSize: '0.6rem', letterSpacing: 3, textTransform: 'uppercase', color: '#d4b97a', marginBottom: 12, fontWeight: 'bold' }}>Voice Note</p>
+              <motion.img src="/vinyl.png" alt="Vinyl"
+                style={{ width: 120, height: 120, borderRadius: '50%', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.7))', rotate: finalVinylRot }} />
+              <motion.button
+                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.93 }}
+                onClick={() => {
+                  const next = !finalVinylPlaying;
+                  setFinalVinylPlaying(next);
+                  if (vinylAudioRef.current) { next ? vinylAudioRef.current.play().catch(()=>{}) : vinylAudioRef.current.pause(); }
+                }}
+                style={{ marginTop: 14, width: 46, height: 46, borderRadius: '50%', background: 'rgba(253,246,227,0.95)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
+                {finalVinylPlaying ? '⏸' : '▶'}
+              </motion.button>
+              <audio src={voiceNote} onEnded={() => setFinalVinylPlaying(false)} style={{ display: 'none' }}
+                ref={el => { vinylAudioRef.current = el; }} />
             </motion.div>
           )}
         </motion.div>
