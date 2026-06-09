@@ -267,6 +267,7 @@ export default function BuilderPage() {
   const [myBouquet, setMyBouquet] = useState(null);
   const [checkingMyBouquet, setCheckingMyBouquet] = useState(true);
   const [deletingBouquet, setDeletingBouquet] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
@@ -275,6 +276,17 @@ export default function BuilderPage() {
   const [activeFlower, setActiveFlower] = useState(null);
   const [filterCat, setFilterCat] = useState('all');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const checkDevice = () => {
+      const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isSmallScreen = window.innerWidth < 1024; // We need at least 1024px for the 3-column layout
+      setIsMobile(mobileUA || isSmallScreen);
+    };
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
   const [selectedGreenery, setSelectedGreenery] = useState('greenery1.png');
   const [noteText, setNoteText] = useState('');
   const [noteRecipient, setNoteRecipient] = useState('Beloved');
@@ -1044,6 +1056,70 @@ export default function BuilderPage() {
   };
 
   const filteredFlowers = filterCat === 'all' ? FLOWERS : FLOWERS.filter((f) => f.category === filterCat);
+
+  if (isMobile) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--parchment-light)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Logo */}
+        <div style={{
+          position: 'absolute',
+          top: 24,
+          left: 24,
+        }}>
+          <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 40, objectFit: 'contain' }} />
+        </div>
+
+        <div className="letter-card animate-fadeInUp" style={{
+          width: '100%',
+          maxWidth: 540,
+          padding: '36px 36px 28px',
+          position: 'relative',
+          boxSizing: 'border-box'
+        }}>
+          <div className="letter-card-inner" style={{ padding: '16px' }}>
+            <div style={{ marginBottom: 28, textAlign: 'center' }}>
+              <div className="font-typewriter" style={{ fontSize: '0.6rem', color: 'var(--sepia-light)', textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 8 }}>
+                Atelier Notice
+              </div>
+              <h2 className="font-display" style={{ fontSize: '1.5rem', color: 'var(--ink-brown)', fontWeight: 600, lineHeight: 1.2 }}>
+                Desktop Atelier Optimized
+              </h2>
+              <p className="font-script" style={{ fontSize: '1.1rem', color: 'var(--sepia)', fontStyle: 'italic', marginTop: 8 }}>
+                "A delicate arrangement is best crafted with care on a larger screen."
+              </p>
+            </div>
+
+            <div className="ornament-divider" style={{ marginBottom: 24 }}>
+              <span style={{ fontSize: '0.9rem' }}>❧</span>
+            </div>
+
+            <div className="font-typewriter" style={{ fontSize: '0.75rem', color: 'var(--sepia)', lineHeight: 1.8, marginBottom: 24, textAlign: 'justify' }}>
+              Building your Floravo bouquet is a detailed, drag-and-drop experience. We are actively working on a fully tailored mobile experience; however, because the editor will run slow and feel cramped on smaller screens, we currently only support creation from a <strong>laptop or desktop device</strong>.
+            </div>
+
+            <div className="ornament-divider" style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--sepia-light)' }}>❦</span>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <span className="font-typewriter" style={{ fontSize: '0.7rem', color: 'var(--sepia-light)' }}>
+                Please visit us again on a desktop computer.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (checkingAuth || checkingApproval) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
