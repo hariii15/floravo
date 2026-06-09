@@ -635,19 +635,7 @@ export default function BuilderPage() {
           }
         } catch (err) {
           console.error('Auth sync error:', err);
-          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            console.warn('Local/offline bypass activated due to network error.');
-            setIsApproved(true);
-            setUserRecord({
-              firebaseUid: 'Fk0Yl77koDbTc8zklL4mDsu8CSJ2',
-              email: u?.email || 'hariharpradeepjaybal@gmail.com',
-              name: u?.displayName || 'Admin User',
-              role: 'admin',
-              approved: true
-            });
-          } else {
-            setIsApproved(false);
-          }
+          setIsApproved(false);
         } finally {
           setCheckingApproval(false);
           setCheckingAuth(false);
