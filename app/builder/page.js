@@ -306,6 +306,19 @@ export default function BuilderPage() {
   const [shareUrl, setShareUrl] = useState('');
   const canvasRef = useRef(null);
   const dragRef = useRef(null);
+
+  // ── Feedback modal state ──
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackData, setFeedbackData] = useState({
+    shared: '',
+    meaningfulness: 0,
+    frustrations: '',
+    wishFeature: '',
+    wouldUseAgain: '',
+  });
+  const [feedbackStep, setFeedbackStep] = useState(1); // 1-5
   const mediaRecorderRef = useRef(null);
   const voiceChunksRef = useRef([]);
 
@@ -864,6 +877,39 @@ export default function BuilderPage() {
     a.download = 'my-bouquet.png';
     a.href = canvas.toDataURL('image/png');
     a.click();
+  };
+
+  // Open feedback modal 1s after share URL appears
+  useEffect(() => {
+    if (shareUrl && !feedbackSubmitted) {
+      const t = setTimeout(() => setShowFeedback(true), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [shareUrl, feedbackSubmitted]);
+
+  const submitFeedback = async () => {
+    setFeedbackSubmitting(true);
+    try {
+      const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      let token = null;
+      try { token = await auth.currentUser?.getIdToken(true); } catch (_) {}
+      // Extract bouquet ID from shareUrl
+      const bouquetId = shareUrl ? shareUrl.split('/').pop() : null;
+      await fetch(`${apiHost}/api/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ ...feedbackData, bouquetId })
+      });
+    } catch (err) {
+      console.error('Feedback submit error:', err);
+    } finally {
+      setFeedbackSubmitting(false);
+      setFeedbackSubmitted(true);
+      setShowFeedback(false);
+    }
   };
 
   const saveAndShareBouquet = async () => {
@@ -1779,7 +1825,22 @@ export default function BuilderPage() {
             </div>
           </div>
        </div>
-    );
+
+        {/* ── FEEDBACK MODAL ── */}
+        {showFeedback && (
+          <FeedbackModal
+            step={feedbackStep}
+            data={feedbackData}
+            submitting={feedbackSubmitting}
+            submitted={feedbackSubmitted}
+            onChange={(key, val) => setFeedbackData(prev => ({ ...prev, [key]: val }))}
+            onNext={() => setFeedbackStep(s => Math.min(s + 1, 5))}
+            onBack={() => setFeedbackStep(s => Math.max(s - 1, 1))}
+            onSubmit={submitFeedback}
+            onDismiss={() => setShowFeedback(false)}
+          />
+        )}
+     );
   }
 
   return (
@@ -2119,6 +2180,241 @@ function BouquetFlower({ item, isActive, onClick, onDrag }) {
         alt={item.flower.name}
         style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', display: 'block' }}
       />
+    </div>
+  );
+}
+/* ═══════════════════════════════════════════════
+   FEEDBACK MODAL COMPONENT
+   ═══════════════════════════════════════════════ */
+function FeedbackModal({ step, data, submitting, onChange, onNext, onBack, onSubmit, onDismiss }) {
+  const totalSteps = 5;
+
+  const canGoNext = () => {
+    if (step === 1) return !!data.shared;
+    if (step === 2) return data.meaningfulness > 0;
+    if (step === 5) return !!data.wouldUseAgain;
+    return true;
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      background: 'rgba(30, 15, 5, 0.55)', backdropFilter: 'blur(3px)',
+      animation: 'fadeIn 0.3s ease',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 560, background: '#fdf6e3',
+        borderTop: '3px solid #3b200a', borderLeft: '1px solid #d4b97a',
+        borderRight: '1px solid #d4b97a', padding: '36px 40px 40px',
+        position: 'relative', fontFamily: 'var(--font-typewriter)',
+        animation: 'slideUpModal 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+      }}>
+        <style>{`
+          @keyframes slideUpModal {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+          }
+        `}</style>
+
+        {/* Dismiss */}
+        <button onClick={onDismiss} style={{
+          position: 'absolute', top: 16, right: 20, background: 'none',
+          border: 'none', cursor: 'pointer', fontFamily: 'var(--font-typewriter)',
+          fontSize: '0.7rem', color: 'var(--sepia-light)', letterSpacing: '1px',
+          textTransform: 'uppercase',
+        }}>Skip ✕</button>
+
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: '0.55rem', letterSpacing: '3px', textTransform: 'uppercase', color: 'var(--sepia-light)', marginBottom: 4 }}>
+            Floravo Atelier · Post-Share Survey
+          </div>
+          <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--ink-brown)', lineHeight: 1.2 }}>
+            A Moment of Your Time
+          </div>
+          <div style={{ fontSize: '0.68rem', color: 'var(--sepia)', marginTop: 4, fontStyle: 'italic' }}>
+            Help us craft a finer experience — {totalSteps - step + 1} question{totalSteps - step + 1 !== 1 ? 's' : ''} remaining.
+          </div>
+        </div>
+
+        {/* Progress dots */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <div key={i} style={{
+              width: i < step ? 20 : 8, height: 8, borderRadius: 4,
+              background: i < step ? 'var(--ink-brown)' : 'var(--parchment-deep)',
+              transition: 'all 0.3s ease',
+            }} />
+          ))}
+        </div>
+
+        {/* Step 1 */}
+        {step === 1 && (
+          <div style={{ animation: 'fadeIn 0.25s ease' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--ink-brown)', marginBottom: 16 }}>
+              Have you shared this bouquet with someone yet?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { val: 'yes',     label: '✅  Yes, I shared it!' },
+                { val: 'not_yet', label: '⏳  Not yet, but I plan to' },
+                { val: 'no_plan', label: "✕   I don't plan to share it" },
+              ].map(opt => (
+                <button key={opt.val} onClick={() => onChange('shared', opt.val)} style={{
+                  textAlign: 'left', padding: '12px 16px',
+                  border: data.shared === opt.val ? '2px solid var(--ink-brown)' : '1px solid var(--parchment-deep)',
+                  background: data.shared === opt.val ? '#f2e4c0' : 'white',
+                  cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem',
+                  color: 'var(--ink-brown)', transition: 'all 0.15s ease',
+                }}>{opt.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 2 */}
+        {step === 2 && (
+          <div style={{ animation: 'fadeIn 0.25s ease' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--ink-brown)', marginBottom: 6 }}>
+              How meaningful does this bouquet feel compared to a normal message?
+            </div>
+            <div style={{ fontSize: '0.62rem', color: 'var(--sepia-light)', marginBottom: 20, fontStyle: 'italic' }}>
+              1 = Just another message &nbsp;·&nbsp; 5 = Much more meaningful
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              {[1,2,3,4,5].map(n => (
+                <button key={n} onClick={() => onChange('meaningfulness', n)} style={{
+                  width: 52, height: 52,
+                  border: data.meaningfulness === n ? '2px solid var(--ink-brown)' : '1px solid var(--parchment-deep)',
+                  background: data.meaningfulness === n ? 'var(--ink-brown)' : 'white',
+                  color: data.meaningfulness === n ? 'var(--parchment-light)' : 'var(--ink-brown)',
+                  cursor: 'pointer', fontFamily: 'var(--font-typewriter)',
+                  fontSize: '1.1rem', fontWeight: 'bold', borderRadius: 2,
+                  transition: 'all 0.15s ease',
+                }}>{n}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: '0.6rem', color: 'var(--sepia-light)', fontStyle: 'italic' }}>
+              <span>Just another message</span><span>Much more meaningful</span>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 */}
+        {step === 3 && (
+          <div style={{ animation: 'fadeIn 0.25s ease' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--ink-brown)', marginBottom: 6 }}>
+              Did anything feel confusing, difficult, or frustrating?
+            </div>
+            <div style={{ fontSize: '0.62rem', color: 'var(--sepia-light)', marginBottom: 14, fontStyle: 'italic' }}>
+              Tell us honestly. We read every response.
+            </div>
+            <textarea
+              value={data.frustrations}
+              onChange={e => onChange('frustrations', e.target.value)}
+              placeholder="e.g. The flower panel was hard to scroll on mobile..."
+              maxLength={500} rows={4}
+              style={{
+                width: '100%', padding: '12px 14px', fontFamily: 'var(--font-typewriter)',
+                fontSize: '0.78rem', color: 'var(--ink-brown)', background: '#fffdf8',
+                border: '1px solid var(--parchment-deep)', borderBottom: '2px solid var(--sepia)',
+                outline: 'none', resize: 'none', lineHeight: 1.6,
+              }}
+            />
+            <div style={{ fontSize: '0.6rem', color: 'var(--sepia-light)', textAlign: 'right', marginTop: 4 }}>
+              {data.frustrations.length}/500
+            </div>
+          </div>
+        )}
+
+        {/* Step 4 */}
+        {step === 4 && (
+          <div style={{ animation: 'fadeIn 0.25s ease' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--ink-brown)', marginBottom: 6 }}>
+              What's one feature you wish Floravo had?
+            </div>
+            <div style={{ fontSize: '0.62rem', color: 'var(--sepia-light)', marginBottom: 14, fontStyle: 'italic' }}>
+              e.g. Video messages, more flowers, music, gift themes, animation...
+            </div>
+            <input
+              type="text"
+              value={data.wishFeature}
+              onChange={e => onChange('wishFeature', e.target.value)}
+              placeholder="Describe your dream feature..."
+              maxLength={200}
+              style={{
+                width: '100%', padding: '13px 14px', fontFamily: 'var(--font-typewriter)',
+                fontSize: '0.78rem', color: 'var(--ink-brown)', background: '#fffdf8',
+                border: 'none', borderBottom: '2px solid var(--sepia)', outline: 'none',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Step 5 */}
+        {step === 5 && (
+          <div style={{ animation: 'fadeIn 0.25s ease' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--ink-brown)', marginBottom: 16 }}>
+              Would you use Floravo again?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { val: 'definitely', label: '🌸  Definitely — already planning my next one' },
+                { val: 'probably',   label: '🌿  Probably — I enjoyed it' },
+                { val: 'maybe',      label: '🌱  Maybe — depends on the occasion' },
+                { val: 'unlikely',   label: '🍂  Unlikely — not quite for me' },
+                { val: 'never',      label: "✕   No — I don't see myself returning" },
+              ].map(opt => (
+                <button key={opt.val} onClick={() => onChange('wouldUseAgain', opt.val)} style={{
+                  textAlign: 'left', padding: '11px 16px',
+                  border: data.wouldUseAgain === opt.val ? '2px solid var(--ink-brown)' : '1px solid var(--parchment-deep)',
+                  background: data.wouldUseAgain === opt.val ? '#f2e4c0' : 'white',
+                  cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.72rem',
+                  color: 'var(--ink-brown)', transition: 'all 0.15s ease',
+                }}>{opt.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
+          {step > 1 && (
+            <button onClick={onBack} style={{
+              flex: '0 0 auto', padding: '10px 20px',
+              border: '1px solid var(--parchment-deep)', background: 'white',
+              cursor: 'pointer', fontFamily: 'var(--font-typewriter)',
+              fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase',
+              color: 'var(--sepia)',
+            }}>← Back</button>
+          )}
+          {step < totalSteps ? (
+            <button onClick={onNext} disabled={!canGoNext()} style={{
+              flex: 1, padding: '12px',
+              border: '1px solid var(--ink-brown)',
+              background: canGoNext() ? 'var(--ink-brown)' : 'var(--parchment-dark)',
+              color: canGoNext() ? 'var(--parchment-light)' : 'var(--sepia-light)',
+              cursor: canGoNext() ? 'pointer' : 'not-allowed',
+              fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem',
+              letterSpacing: '2px', textTransform: 'uppercase',
+              transition: 'all 0.2s ease',
+            }}>Continue →</button>
+          ) : (
+            <button onClick={onSubmit} disabled={!canGoNext() || submitting} style={{
+              flex: 1, padding: '12px',
+              border: '1px solid var(--ink-brown)',
+              background: canGoNext() ? 'var(--ink-brown)' : 'var(--parchment-dark)',
+              color: 'var(--parchment-light)',
+              cursor: canGoNext() ? 'pointer' : 'not-allowed',
+              fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem',
+              letterSpacing: '2px', textTransform: 'uppercase',
+            }}>{submitting ? 'Sending…' : '✉ Send Feedback'}</button>
+          )}
+        </div>
+
+        <div style={{ position: 'absolute', bottom: 16, right: 24, opacity: 0.1, fontSize: '2rem', pointerEvents: 'none' }}>🌸</div>
+      </div>
     </div>
   );
 }
