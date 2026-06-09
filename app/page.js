@@ -91,21 +91,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page-root" style={{ minHeight: '100vh', display: 'flex', position: 'relative', overflow: 'hidden' }}>
+    <div className="login-page-root">
 
       {/* ── DECORATIVE BACKGROUND ELEMENTS ── */}
       <div className="login-bg-deco" aria-hidden="true">
         {/* Corner ornaments */}
-        <div style={cornerStyle('top', 'left')}>
+        <div className="fixed-corner-ornament" style={cornerStyle('top', 'left')}>
           <CornerOrnament />
         </div>
-        <div style={{ ...cornerStyle('top', 'right'), transform: 'rotate(90deg)' }}>
+        <div className="fixed-corner-ornament" style={{ ...cornerStyle('top', 'right'), transform: 'rotate(90deg)' }}>
           <CornerOrnament />
         </div>
-        <div style={{ ...cornerStyle('bottom', 'left'), transform: 'rotate(270deg)' }}>
+        <div className="fixed-corner-ornament" style={{ ...cornerStyle('bottom', 'left'), transform: 'rotate(270deg)' }}>
           <CornerOrnament />
         </div>
-        <div style={{ ...cornerStyle('bottom', 'right'), transform: 'rotate(180deg)' }}>
+        <div className="fixed-corner-ornament" style={{ ...cornerStyle('bottom', 'right'), transform: 'rotate(180deg)' }}>
           <CornerOrnament />
         </div>
 
@@ -122,17 +122,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── LEFT PANEL — BRANDING ── */}
-      <div className="login-brand-panel" style={{
-        flex: '1 1 42%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '60px 48px',
-        borderRight: '1px solid var(--parchment-deep)',
-        position: 'relative',
-        gap: '32px',
-      }}>
+      <div className="login-brand-panel">
 
         {/* Postmark (decorative, top right of left panel) */}
         <div className="postmark" style={{ top: '40px', right: '40px' }}>
@@ -172,14 +162,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── RIGHT PANEL — FORM ── */}
-      <div className="login-form-panel" style={{
-        flex: '1 1 58%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '60px 48px',
-        position: 'relative',
-      }}>
+      <div className="login-form-panel">
 
         {/* Letter / card */}
         <div className="letter-card animate-fadeInUp" style={{

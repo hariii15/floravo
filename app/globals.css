@@ -685,3 +685,93 @@ html, body {
     height: auto;
   }
 }
+
+/* ============================================
+   RESPONSIVE LOGIN PAGE
+   ============================================ */
+.login-page-root {
+  min-height: 100vh;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--parchment);
+}
+
+.login-brand-panel {
+  flex: 1 1 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 48px;
+  border-right: 1px solid var(--parchment-deep);
+  position: relative;
+  gap: 32px;
+}
+
+.login-form-panel {
+  flex: 1 1 58%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 48px;
+  position: relative;
+}
+
+/* Mobile & Tablet Responsiveness */
+@media (max-width: 768px) {
+  .login-page-root {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .login-brand-panel {
+    flex: none;
+    width: 100%;
+    padding: 40px 24px 24px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--parchment-deep) !important;
+    gap: 16px !important;
+  }
+
+  .login-brand-panel .postmark {
+    display: none !important; /* Hide postmark on mobile */
+  }
+
+  .login-brand-panel img {
+    max-width: 220px !important; /* Make logo smaller on mobile */
+  }
+
+  .login-brand-panel .ornament-divider,
+  .login-brand-panel .stamp {
+    display: none !important; /* Hide ornaments on mobile */
+  }
+
+  .login-brand-panel p.font-script {
+    font-size: 1.1rem !important;
+    margin-bottom: 8px !important;
+  }
+
+  .login-form-panel {
+    flex: none;
+    width: 100%;
+    padding: 24px 16px 40px !important;
+  }
+
+  .login-form-panel .letter-card {
+    padding: 24px 20px 24px !important;
+    max-width: 100% !important;
+  }
+
+  .login-form-panel .letter-card-inner {
+    padding: 16px 16px 12px !important;
+  }
+
+  .login-form-panel h2 {
+    font-size: 1.4rem !important;
+  }
+
+  .fixed-corner-ornament {
+    display: none !important;
+  }
+}
