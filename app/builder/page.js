@@ -1822,9 +1822,8 @@ export default function BuilderPage() {
                    </div>
                  </div>
                )}
-            </div>
-          </div>
-       </div>
+             </div>
+           </div>
 
           {/* ── FEEDBACK MODAL ── */}
           {showFeedback && (
@@ -1840,7 +1839,7 @@ export default function BuilderPage() {
               onDismiss={() => setShowFeedback(false)}
             />
           )}
-        </div>
+       </div>
      );
   }
 
