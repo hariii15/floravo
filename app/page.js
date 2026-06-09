@@ -38,7 +38,23 @@ export default function LoginPage() {
         if (!formData.name.trim()) throw new Error('Please enter your name.');
         if (formData.password !== formData.confirm) throw new Error('Passwords do not match.');
         if (formData.password.length < 6) throw new Error('Password must be at least 6 characters.');
-        await signUp(formData.email, formData.password, formData.name.trim());
+        const newUser = await signUp(formData.email, formData.password, formData.name.trim());
+        
+        // Immediately sync the registered user to MongoDB
+        try {
+          const token = await newUser.getIdToken(true);
+          const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+          await fetch(`${apiHost}/api/auth/sync`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ name: formData.name.trim() })
+          });
+        } catch (syncErr) {
+          console.error('Failed to sync new user to MongoDB during signup:', syncErr);
+        }
       } else {
         await logIn(formData.email, formData.password);
       }
