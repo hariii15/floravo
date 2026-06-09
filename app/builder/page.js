@@ -1826,20 +1826,21 @@ export default function BuilderPage() {
           </div>
        </div>
 
-        {/* ── FEEDBACK MODAL ── */}
-        {showFeedback && (
-          <FeedbackModal
-            step={feedbackStep}
-            data={feedbackData}
-            submitting={feedbackSubmitting}
-            submitted={feedbackSubmitted}
-            onChange={(key, val) => setFeedbackData(prev => ({ ...prev, [key]: val }))}
-            onNext={() => setFeedbackStep(s => Math.min(s + 1, 5))}
-            onBack={() => setFeedbackStep(s => Math.max(s - 1, 1))}
-            onSubmit={submitFeedback}
-            onDismiss={() => setShowFeedback(false)}
-          />
-        )}
+          {/* ── FEEDBACK MODAL ── */}
+          {showFeedback && (
+            <FeedbackModal
+              step={feedbackStep}
+              data={feedbackData}
+              submitting={feedbackSubmitting}
+              submitted={feedbackSubmitted}
+              onChange={(key, val) => setFeedbackData(prev => ({ ...prev, [key]: val }))}
+              onNext={() => setFeedbackStep(s => Math.min(s + 1, 5))}
+              onBack={() => setFeedbackStep(s => Math.max(s - 1, 1))}
+              onSubmit={submitFeedback}
+              onDismiss={() => setShowFeedback(false)}
+            />
+          )}
+        </div>
      );
   }
 
