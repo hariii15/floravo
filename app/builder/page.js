@@ -276,6 +276,8 @@ export default function BuilderPage() {
   const [activeFlower, setActiveFlower] = useState(null);
   const [filterCat, setFilterCat] = useState('all');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1); // 1 = select flowers, 2 = click auto
 
   useEffect(() => {
     const checkDevice = () => {
@@ -285,6 +287,12 @@ export default function BuilderPage() {
     };
     checkDevice();
     window.addEventListener('resize', checkDevice);
+
+    if (typeof window !== 'undefined') {
+      const complete = localStorage.getItem('floravo_onboarding_complete') === 'true';
+      setOnboardingComplete(complete);
+    }
+
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
   const [selectedGreenery, setSelectedGreenery] = useState('greenery1.png');
@@ -702,8 +710,19 @@ export default function BuilderPage() {
         return prev;
       }
       const existing = prev.find((f) => f.flower.id === flower.id);
-      if (existing) return prev.map((f) => f.flower.id === flower.id ? { ...f, count: f.count + 1 } : f);
-      return [...prev, { flower, count: 1 }];
+      const updated = existing 
+        ? prev.map((f) => f.flower.id === flower.id ? { ...f, count: f.count + 1 } : f)
+        : [...prev, { flower, count: 1 }];
+
+      // Check onboarding count
+      if (!onboardingComplete) {
+        const newTotalCount = updated.reduce((acc, curr) => acc + curr.count, 0);
+        if (newTotalCount >= 5 && onboardingStep === 1) {
+          setOnboardingStep(2);
+        }
+      }
+
+      return updated;
     });
   };
 
@@ -711,8 +730,19 @@ export default function BuilderPage() {
     setSelectedFlowers((prev) => {
       const existing = prev.find((f) => f.flower.id === flowerId);
       if (!existing) return prev;
-      if (existing.count <= 1) return prev.filter((f) => f.flower.id !== flowerId);
-      return prev.map((f) => f.flower.id === flowerId ? { ...f, count: f.count - 1 } : f);
+      const updated = existing.count <= 1 
+        ? prev.filter((f) => f.flower.id !== flowerId)
+        : prev.map((f) => f.flower.id === flowerId ? { ...f, count: f.count - 1 } : f);
+
+      // Check onboarding count
+      if (!onboardingComplete) {
+        const newTotalCount = updated.reduce((acc, curr) => acc + curr.count, 0);
+        if (newTotalCount < 5 && onboardingStep === 2) {
+          setOnboardingStep(1);
+        }
+      }
+
+      return updated;
     });
   };
 
@@ -724,7 +754,15 @@ export default function BuilderPage() {
     }
     setArranged(generateArrangement(selectedFlowers, selectedGreenery));
     setActiveFlower(null);
-  }, [selectedFlowers, selectedGreenery]);
+
+    // Complete onboarding if in step 2
+    if (!onboardingComplete && onboardingStep === 2) {
+      setOnboardingComplete(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('floravo_onboarding_complete', 'true');
+      }
+    }
+  }, [selectedFlowers, selectedGreenery, onboardingComplete, onboardingStep]);
 
   const shuffleArrangement = () => {
     if (arranged.length === 0) return;
@@ -2045,10 +2083,30 @@ export default function BuilderPage() {
         .shaky-recorder {
           animation: shaky 0.12s infinite;
         }
+        @keyframes breathGlow {
+          0% { box-shadow: inset 0 0 10px rgba(212,185,122,0.2), 0 0 10px rgba(212,185,122,0.2); border-color: rgba(212,185,122,0.3); }
+          50% { box-shadow: inset 0 0 24px rgba(212,185,122,0.8), 0 0 20px rgba(212,185,122,0.7); border-color: #d4b97a; }
+          100% { box-shadow: inset 0 0 10px rgba(212,185,122,0.2), 0 0 10px rgba(212,185,122,0.2); border-color: rgba(212,185,122,0.3); }
+        }
+        @keyframes breathButton {
+          0% { box-shadow: 0 0 4px rgba(212,185,122,0.2); background-color: transparent; }
+          50% { box-shadow: 0 0 18px rgba(212,185,122,0.95); background-color: #fcf8f0; }
+          100% { box-shadow: 0 0 4px rgba(212,185,122,0.2); background-color: transparent; }
+        }
       `}</style>
 
         {/* ── LEFT: FLOWER INVENTORY ── */}
-        <div style={{ background: 'var(--parchment-light)', borderRight: '1px solid var(--parchment-deep)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ 
+          background: 'var(--parchment-light)', 
+          borderRight: '1px solid var(--parchment-deep)', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden',
+          transition: 'all 0.3s ease',
+          animation: (!onboardingComplete && onboardingStep === 1) ? 'breathGlow 2.5s infinite ease-in-out' : 'none',
+          boxShadow: (!onboardingComplete && onboardingStep === 1) ? '0 0 16px rgba(212,185,122,0.4)' : 'none',
+          borderLeft: (!onboardingComplete && onboardingStep === 1) ? '3px solid #d4b97a' : 'none'
+        }}>
           {/* Custom Filter Dropdown */}
           <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid var(--parchment-deep)', position: 'relative' }}>
             <div 
@@ -2123,6 +2181,40 @@ export default function BuilderPage() {
 
         {/* ── CENTER: CANVAS ── */}
         <div className="builder-canvas-area" style={{ flexDirection: 'column', position: 'relative' }}>
+
+          {!onboardingComplete && (
+            <div style={{
+              position: 'absolute',
+              top: '24px',
+              left: '24px',
+              background: '#fdfbf7',
+              border: '1px solid black',
+              padding: '12px 20px',
+              zIndex: 100,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
+              fontFamily: 'var(--font-typewriter)',
+              fontSize: '0.75rem',
+              color: 'black',
+              maxWidth: '380px',
+              lineHeight: 1.4,
+              animation: 'fadeInUp 0.3s ease'
+            }}>
+              {onboardingStep === 1 ? (
+                <div>
+                  <span style={{ color: '#d4b97a', marginRight: 6 }}>✦</span>
+                  <strong>Step 1:</strong> Select at least <strong>5 flowers</strong> from the glowing inventory on the left.
+                  <div style={{ marginTop: 6, fontSize: '0.65rem', color: '#666' }}>
+                    Currently selected: <strong>{selectedFlowers.reduce((acc, curr) => acc + curr.count, 0)} / 5</strong>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <span style={{ color: '#d4b97a', marginRight: 6 }}>✦</span>
+                  <strong>Step 2:</strong> Press the glowing <strong>✦ Auto</strong> button on the right to arrange your bouquet!
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Username and Depart button directly on the background, to the left of the right tab */}
           <div style={{
@@ -2212,7 +2304,20 @@ export default function BuilderPage() {
             <div className="font-typewriter" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--sepia-light)', marginBottom: 10 }}>Arrange</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={autoArrange} id="btn-auto-arrange" title="Auto Arrange"
-                style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--sepia)', transition: 'all 0.2s', letterSpacing: '0.5px' }}>
+                style={{ 
+                  flex: 1, 
+                  padding: '12px 0', 
+                  border: (!onboardingComplete && onboardingStep === 2) ? '1px solid #d4b97a' : 'none', 
+                  background: (!onboardingComplete && onboardingStep === 2) ? '#fbf8f0' : 'transparent', 
+                  cursor: 'pointer', 
+                  fontFamily: 'var(--font-typewriter)', 
+                  fontSize: '0.7rem', 
+                  color: (!onboardingComplete && onboardingStep === 2) ? 'black' : 'var(--sepia)', 
+                  transition: 'all 0.2s', 
+                  letterSpacing: '0.5px',
+                  fontWeight: (!onboardingComplete && onboardingStep === 2) ? 'bold' : 'normal',
+                  animation: (!onboardingComplete && onboardingStep === 2) ? 'breathButton 1.5s infinite ease-in-out' : 'none'
+                }}>
                 ✦ Auto
               </button>
               <button onClick={shuffleArrangement} id="btn-shuffle" title="Shuffle"
