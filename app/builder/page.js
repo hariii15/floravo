@@ -261,6 +261,12 @@ export default function BuilderPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isApproved, setIsApproved] = useState(null);
+  const [userRecord, setUserRecord] = useState(null);
+  const [checkingApproval, setCheckingApproval] = useState(true);
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [selectedFlowers, setSelectedFlowers] = useState([]);
   const [arranged, setArranged] = useState([]);
   const [activeFlower, setActiveFlower] = useState(null);
@@ -275,6 +281,26 @@ export default function BuilderPage() {
   const [voicePreviewUrl, setVoicePreviewUrl] = useState('');
   const [recordingVoice, setRecordingVoice] = useState(false);
   const [voiceError, setVoiceError] = useState('');
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (voicePreviewUrl) {
+      audioRef.current = new Audio(voicePreviewUrl);
+      audioRef.current.addEventListener('ended', () => setIsPlayingVoice(false));
+    } else {
+      audioRef.current = null;
+    }
+    setIsPlayingVoice(false);
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [voicePreviewUrl]);
   const [currentStep, setCurrentStep] = useState('arrange');
   const [saving, setSaving] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
@@ -584,9 +610,49 @@ export default function BuilderPage() {
   };
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) router.replace('/');
-      else { setUser(u); setCheckingAuth(false); }
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        router.replace('/');
+      } else {
+        setUser(u);
+        try {
+          const token = await u.getIdToken(true);
+          const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+          const response = await fetch(`${apiHost}/api/auth/sync`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          const data = await response.json();
+          if (data.success) {
+            setUserRecord(data.user);
+            setIsApproved(data.user.approved);
+          } else {
+            console.error('Failed to sync user auth status:', data.error);
+            setIsApproved(false);
+          }
+        } catch (err) {
+          console.error('Auth sync error:', err);
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.warn('Local/offline bypass activated due to network error.');
+            setIsApproved(true);
+            setUserRecord({
+              firebaseUid: 'Fk0Yl77koDbTc8zklL4mDsu8CSJ2',
+              email: u?.email || 'hariharpradeepjaybal@gmail.com',
+              name: u?.displayName || 'Admin User',
+              role: 'admin',
+              approved: true
+            });
+          } else {
+            setIsApproved(false);
+          }
+        } finally {
+          setCheckingApproval(false);
+          setCheckingAuth(false);
+        }
+      }
     });
     return () => unsub();
   }, [router]);
@@ -850,10 +916,14 @@ export default function BuilderPage() {
         voiceNote: voiceNoteBase64,
       };
 
+      const token = await auth.currentUser.getIdToken(true);
       const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await fetch(`${apiHost}/api/bouquets`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload),
       });
 
@@ -876,11 +946,147 @@ export default function BuilderPage() {
 
   const filteredFlowers = filterCat === 'all' ? FLOWERS : FLOWERS.filter((f) => f.category === filterCat);
 
-  if (checkingAuth) return (
+  if (checkingAuth || checkingApproval) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <span className="font-typewriter text-sepia" style={{ fontSize: '0.8rem', letterSpacing: '3px' }}>Opening the Atelier…</span>
     </div>
   );
+
+  if (!isApproved) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--parchment-light)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: 24,
+          left: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16
+        }}>
+          <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 40, objectFit: 'contain' }} />
+        </div>
+        
+        <div style={{
+          position: 'absolute',
+          top: 24,
+          right: 24
+        }}>
+          <button onClick={handleSignOut} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '8px 18px', fontWeight: 'bold' }}>
+            Depart
+          </button>
+        </div>
+
+        <div className="letter-card animate-fadeInUp" style={{
+          width: '100%',
+          maxWidth: 500,
+          padding: '48px 48px 40px',
+          position: 'relative',
+        }}>
+          <div className="letter-card-inner" style={{ padding: '36px' }}>
+            <div style={{ marginBottom: 28, textAlign: 'center' }}>
+              <div className="font-typewriter" style={{ fontSize: '0.6rem', color: 'var(--sepia-light)', textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 8 }}>
+                Private Beta Verification
+              </div>
+              <h2 className="font-display" style={{ fontSize: '1.6rem', color: 'var(--ink-brown)', fontWeight: 600, lineHeight: 1.2 }}>
+                Pending Authorization
+              </h2>
+              <p className="font-script" style={{ fontSize: '1.1rem', color: 'var(--sepia)', fontStyle: 'italic', marginTop: 8 }}>
+                "Entry is reserved for registered invitees of our Atelier."
+              </p>
+            </div>
+
+            <div className="ornament-divider" style={{ marginBottom: 24 }}>
+              <span style={{ fontSize: '0.9rem' }}>❧</span>
+            </div>
+
+            <div className="font-typewriter" style={{ fontSize: '0.75rem', color: 'var(--sepia)', lineHeight: 1.6, marginBottom: 20, textAlign: 'justify' }}>
+              Your account for <strong>{user?.email}</strong> has been registered but requires administrator approval to enter the bouquet builder. 
+              If you have received a Beta Invite Code, please enter it below for immediate access.
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!inviteCode.trim()) return;
+              setInviteSubmitting(true);
+              setInviteError('');
+              try {
+                const token = await auth.currentUser.getIdToken(true);
+                const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                const response = await fetch(`${apiHost}/api/auth/claim-invite`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({ inviteCode: inviteCode.trim() })
+                });
+                const data = await response.json();
+                if (data.success) {
+                  setIsApproved(true);
+                  setUserRecord(data.user);
+                } else {
+                  setInviteError(data.error || 'Invalid invite code.');
+                }
+              } catch (err) {
+                console.error(err);
+                setInviteError('Failed to verify invite code. Please try again.');
+              } finally {
+                setInviteSubmitting(false);
+              }
+            }}>
+              <div className="input-wrapper">
+                <label className="input-label" htmlFor="inviteCode">Beta Invite Code</label>
+                <input
+                  id="inviteCode"
+                  name="inviteCode"
+                  type="text"
+                  className="vintage-input"
+                  placeholder="e.g. FLORAVO-BETA-001"
+                  value={inviteCode}
+                  onChange={(e) => { setInviteCode(e.target.value); setInviteError(''); }}
+                  required
+                  style={{ textAlign: 'center', letterSpacing: '2px', textTransform: 'uppercase' }}
+                  disabled={inviteSubmitting}
+                />
+              </div>
+
+              {inviteError && (
+                <div className="error-msg" role="alert" style={{ marginTop: 12 }}>
+                  ⚠ {inviteError}
+                </div>
+              )}
+
+              <div style={{ marginTop: 24 }}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={inviteSubmitting}
+                  style={{ width: '100%' }}
+                >
+                  {inviteSubmitting ? 'Verifying Invite…' : '✉ Verify & Enter'}
+                </button>
+              </div>
+            </form>
+
+            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--parchment-deep)', textAlign: 'center' }}>
+              <span className="font-typewriter" style={{ fontSize: '0.65rem', color: 'var(--sepia-light)' }}>
+                Need access? Please contact <a href="mailto:info@floravo.com" style={{ textDecoration: 'underline', color: 'var(--sepia)' }}>info@floravo.com</a>.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (currentStep === 'personalize') {
     return (
@@ -952,46 +1158,112 @@ export default function BuilderPage() {
               )}
             </div>
  
-            <div style={{ width: '100%', maxWidth: 220 }}>
-              <div style={{ border: '1px solid black', background: 'white', padding: '14px 14px 12px', fontFamily: 'var(--font-typewriter)' }}>
-                <div style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8, color: 'var(--sepia-light)' }}>
-                  Voice Message
+            <div style={{ width: '100%', maxWidth: 220, fontFamily: 'var(--font-typewriter)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8, color: 'var(--sepia-light)' }}>
+                Voice Message
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, overflow: 'hidden' }}>
+                <img
+                  src="/recorder.png"
+                  alt="Recorder"
+                  className={recordingVoice ? 'shaky-recorder' : ''}
+                  style={{
+                    height: '85px',
+                    objectFit: 'contain',
+                    display: 'block'
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={toggleVoiceRecording}
+                style={{ width: '100%', border: '1px solid black', background: recordingVoice ? 'var(--postal-red)' : 'transparent', color: recordingVoice ? 'white' : 'black', padding: '10px 12px', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', letterSpacing: '1px' }}
+              >
+                {recordingVoice ? `■ Stop (${voiceSecondsLeft}s)` : voicePreviewUrl ? '● Re-record Voice' : '● Record Voice'}
+              </button>
+              {voicePreviewUrl && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!audioRef.current) return;
+                        if (isPlayingVoice) {
+                          audioRef.current.pause();
+                          setIsPlayingVoice(false);
+                        } else {
+                          audioRef.current.play().catch(e => console.error(e));
+                          setIsPlayingVoice(true);
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        border: '1px solid black',
+                        background: 'transparent',
+                        padding: '6px 12px',
+                        fontFamily: 'var(--font-typewriter)',
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        letterSpacing: '1px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {isPlayingVoice ? '❚❚ Pause' : '▶ Play'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!audioRef.current) return;
+                        audioRef.current.pause();
+                        audioRef.current.currentTime = 0;
+                        setIsPlayingVoice(false);
+                      }}
+                      style={{
+                        flex: 1,
+                        border: '1px solid black',
+                        background: 'transparent',
+                        padding: '6px 12px',
+                        fontFamily: 'var(--font-typewriter)',
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        letterSpacing: '1px'
+                      }}
+                    >
+                      ■ Stop
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.62rem', color: 'var(--sepia-light)', marginTop: 6 }}>
+                    {isPlayingVoice ? 'Playback active' : 'Playback idle'}
+                  </div>
                 </div>
+              )}
+              {voiceClip && (
+                <div style={{ marginTop: 8, color: 'var(--sepia-light)', fontSize: '0.68rem', lineHeight: 1.5 }}>
+                  Voice clip captured and ready to attach.
+                </div>
+              )}
+              {voicePreviewUrl && (
                 <button
                   type="button"
-                  onClick={toggleVoiceRecording}
-                  style={{ width: '100%', border: '1px solid black', background: recordingVoice ? 'black' : 'transparent', color: recordingVoice ? 'white' : 'black', padding: '10px 12px', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', letterSpacing: '1px' }}
+                  onClick={clearVoiceNote}
+                  style={{ marginTop: 8, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--postal-red)' }}
                 >
-                  {recordingVoice ? `Stop (${voiceSecondsLeft}s left)` : voicePreviewUrl ? 'Re-record Voice' : 'Record Voice'}
+                  Remove voice note
                 </button>
-                {voicePreviewUrl && (
-                  <audio controls src={voicePreviewUrl} style={{ width: '100%', marginTop: 10 }} />
-                )}
-                {voiceClip && (
-                  <div style={{ marginTop: 8, color: 'var(--sepia-light)', fontSize: '0.68rem', lineHeight: 1.5 }}>
-                    Voice clip captured and ready to attach.
-                  </div>
-                )}
-                {voicePreviewUrl && (
-                  <button
-                    type="button"
-                    onClick={clearVoiceNote}
-                    style={{ marginTop: 8, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', color: 'var(--postal-red)' }}
-                  >
-                    Remove voice note
-                  </button>
-                )}
-                {voiceError && (
-                  <div style={{ marginTop: 8, color: 'var(--postal-red)', fontSize: '0.7rem', lineHeight: 1.4 }}>
-                    {voiceError}
-                  </div>
-                )}
-                {!voicePreviewUrl && !voiceError && (
-                  <div style={{ marginTop: 8, color: 'var(--sepia-light)', fontSize: '0.68rem', lineHeight: 1.5 }}>
-                    Record a short voice note to accompany the bouquet.
-                  </div>
-                )}
-              </div>
+              )}
+              {voiceError && (
+                <div style={{ marginTop: 8, color: 'var(--postal-red)', fontSize: '0.7rem', lineHeight: 1.4 }}>
+                  {voiceError}
+                </div>
+              )}
+              {!voicePreviewUrl && !voiceError && (
+                <div style={{ marginTop: 8, color: 'var(--sepia-light)', fontSize: '0.68rem', lineHeight: 1.5 }}>
+                  Record a short voice note to accompany the bouquet.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1288,6 +1560,24 @@ export default function BuilderPage() {
   if (currentStep === 'review') {
     return (
        <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+          <style>{`
+            @keyframes shaky {
+              0% { transform: translate(0, 0) rotate(0deg); }
+              10% { transform: translate(-1.5px, -1.5px) rotate(-1deg); }
+              20% { transform: translate(-2.5px, 0px) rotate(1.5deg); }
+              30% { transform: translate(1.5px, 1.5px) rotate(0deg); }
+              40% { transform: translate(1.5px, -1.5px) rotate(1deg); }
+              50% { transform: translate(-1.5px, 2.5px) rotate(-1.5deg); }
+              60% { transform: translate(-2.5px, 1.5px) rotate(0deg); }
+              70% { transform: translate(2.5px, 1.5px) rotate(-1deg); }
+              80% { transform: translate(-1.5px, -1.5px) rotate(1.5deg); }
+              90% { transform: translate(1.5px, 2.5px) rotate(0deg); }
+              100% { transform: translate(1.5px, -2.5px) rotate(-1deg); }
+            }
+            .shaky-recorder {
+              animation: shaky 0.12s infinite;
+            }
+          `}</style>
           
           <div style={{ padding: '40px 0 20px', position: 'relative', zIndex: 10 }}>
             <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 60, objectFit: 'contain' }} />
@@ -1351,15 +1641,53 @@ export default function BuilderPage() {
                 )}
               </div>
               
-              <div style={{ display: 'flex', gap: 16, marginTop: 32 }}>
-                <button className="control-btn" onClick={() => setCurrentStep('personalize')} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', cursor: 'pointer' }}>
-                   Back to Card
+              <div style={{ display: 'flex', gap: 16, marginTop: 32, justifyContent: 'center' }}>
+                <button 
+                  onClick={() => setCurrentStep('personalize')} 
+                  style={{ 
+                    background: 'white', 
+                    color: 'black',
+                    border: '1px solid black', 
+                    padding: '12px 32px', 
+                    letterSpacing: '2px', 
+                    fontFamily: 'var(--font-typewriter)', 
+                    fontSize: '0.75rem', 
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f7f7f7';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'white';
+                  }}
+                >
+                  Back to Card
                 </button>
-                <button className="control-btn" onClick={saveAndShareBouquet} disabled={saving} style={{ background: 'white', border: '1px solid black', padding: '12px 24px', letterSpacing: '1px', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', cursor: 'pointer' }}>
-                   {saving ? 'Saving...' : '🔗 Save & Share'}
-                </button>
-                <button className="btn-primary" onClick={exportPNG} style={{ padding: '12px 32px', fontSize: '0.8rem', letterSpacing: '1px', background: 'black', color: 'white', border: '1px solid black', fontFamily: 'var(--font-typewriter)', textTransform: 'uppercase', cursor: 'pointer' }}>
-                   📥 Export Final Bouquet
+                <button 
+                  onClick={saveAndShareBouquet} 
+                  disabled={saving} 
+                  style={{ 
+                    background: 'black', 
+                    color: 'white',
+                    border: '1px solid black', 
+                    padding: '12px 48px', 
+                    letterSpacing: '2px', 
+                    fontFamily: 'var(--font-typewriter)', 
+                    fontSize: '0.75rem', 
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#333';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'black';
+                  }}
+                >
+                  {saving ? 'Saving...' : 'Save & Share'}
                 </button>
               </div>
 
@@ -1386,11 +1714,78 @@ export default function BuilderPage() {
             <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
                <img src="/flowers/sunflower.png" style={{ height: 240, objectFit: 'contain', opacity: 0.9 }} alt="Decoration" />
                {voicePreviewUrl && (
-                 <div style={{ width: 240, background: 'white', border: '1px solid black', padding: '14px 16px', textAlign: 'left', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-                   <div className="font-typewriter" style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--ink-brown)', marginBottom: 8, fontWeight: 'bold' }}>
+                 <div style={{ width: 240, fontFamily: 'var(--font-typewriter)', textAlign: 'center' }}>
+                   <div className="font-typewriter" style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--ink-brown)', marginBottom: 12, fontWeight: 'bold', textAlign: 'center' }}>
                      Voice Preview
                    </div>
-                   <audio controls src={voicePreviewUrl} style={{ width: '100%' }} />
+                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, overflow: 'hidden' }}>
+                     <img
+                       src="/recorder.png"
+                       alt="Recorder"
+                       style={{
+                         height: '80px',
+                         objectFit: 'contain',
+                         display: 'block'
+                       }}
+                     />
+                   </div>
+                   <div style={{ marginTop: 10 }}>
+                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                       <button
+                         type="button"
+                         onClick={() => {
+                           if (!audioRef.current) return;
+                           if (isPlayingVoice) {
+                             audioRef.current.pause();
+                             setIsPlayingVoice(false);
+                           } else {
+                             audioRef.current.play().catch(e => console.error(e));
+                             setIsPlayingVoice(true);
+                           }
+                         }}
+                         style={{
+                           flex: 1,
+                           border: '1px solid black',
+                           background: 'transparent',
+                           padding: '6px 12px',
+                           fontFamily: 'var(--font-typewriter)',
+                           fontSize: '0.7rem',
+                           cursor: 'pointer',
+                           letterSpacing: '1px',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           gap: '4px'
+                         }}
+                       >
+                         {isPlayingVoice ? '❚❚ Pause' : '▶ Play'}
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => {
+                           if (!audioRef.current) return;
+                           audioRef.current.pause();
+                           audioRef.current.currentTime = 0;
+                           setIsPlayingVoice(false);
+                         }}
+                         style={{
+                           flex: 1,
+                           border: '1px solid black',
+                           background: 'transparent',
+                           padding: '6px 12px',
+                           fontFamily: 'var(--font-typewriter)',
+                           fontSize: '0.7rem',
+                           cursor: 'pointer',
+                           letterSpacing: '1px'
+                         }}
+                       >
+                         ■ Stop
+                       </button>
+                     </div>
+                     <div style={{ fontSize: '0.62rem', color: 'var(--sepia-light)', marginTop: 6 }}>
+                       {isPlayingVoice ? 'Playback active' : 'Playback idle'}
+                     </div>
+                   </div>
                  </div>
                )}
             </div>
@@ -1400,25 +1795,25 @@ export default function BuilderPage() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateRows: '52px 1fr', height: '100vh', overflow: 'hidden' }}>
-      {/* TOP BAR */}
-      <div className="builder-topbar" style={{ gridColumn: '1 / -1' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 32, objectFit: 'contain' }} />
-        </div>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span className="font-typewriter" style={{ fontSize: '0.65rem', color: 'var(--parchment-deep)', letterSpacing: '1px' }}>
-            {user?.displayName || user?.email}
-          </span>
-          <button onClick={handleSignOut} className="btn-secondary" style={{ fontSize: '0.65rem', padding: '6px 14px', color: 'var(--parchment-light)', borderColor: 'rgba(255,255,255,0.2)' }}>
-            Depart
-          </button>
-        </div>
-      </div>
-
-      {/* TWO-PANEL + CANVAS LAYOUT */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 260px', overflow: 'hidden' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 260px', height: '100vh', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes shaky {
+          0% { transform: translate(0, 0) rotate(0deg); }
+          10% { transform: translate(-1.5px, -1.5px) rotate(-1deg); }
+          20% { transform: translate(-2.5px, 0px) rotate(1.5deg); }
+          30% { transform: translate(1.5px, 1.5px) rotate(0deg); }
+          40% { transform: translate(1.5px, -1.5px) rotate(1deg); }
+          50% { transform: translate(-1.5px, 2.5px) rotate(-1.5deg); }
+          60% { transform: translate(-2.5px, 1.5px) rotate(0deg); }
+          70% { transform: translate(2.5px, 1.5px) rotate(-1deg); }
+          80% { transform: translate(-1.5px, -1.5px) rotate(1.5deg); }
+          90% { transform: translate(1.5px, 2.5px) rotate(0deg); }
+          100% { transform: translate(1.5px, -2.5px) rotate(-1deg); }
+        }
+        .shaky-recorder {
+          animation: shaky 0.12s infinite;
+        }
+      `}</style>
 
         {/* ── LEFT: FLOWER INVENTORY ── */}
         <div style={{ background: 'var(--parchment-light)', borderRight: '1px solid var(--parchment-deep)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1495,13 +1890,37 @@ export default function BuilderPage() {
         </div>
 
         {/* ── CENTER: CANVAS ── */}
-        <div className="builder-canvas-area" style={{ flexDirection: 'column' }}>
+        <div className="builder-canvas-area" style={{ flexDirection: 'column', position: 'relative' }}>
+
+          {/* Username and Depart button directly on the background, to the left of the right tab */}
+          <div style={{
+            position: 'absolute',
+            top: '24px',
+            right: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            zIndex: 10
+          }}>
+            {userRecord?.role === 'admin' && (
+              <button onClick={() => router.push('/admin/pending-users')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '8px 18px', fontWeight: 'bold', background: 'var(--parchment-dark)', color: 'var(--ink-brown)', borderColor: 'var(--sepia)' }}>
+                Admin Queue
+              </button>
+            )}
+            <span className="font-typewriter" style={{ fontSize: '0.8rem', color: 'var(--sepia)', letterSpacing: '1.5px', fontWeight: 'bold' }}>
+              {user?.displayName || user?.email}
+            </span>
+            <button onClick={handleSignOut} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '8px 18px', fontWeight: 'bold' }}>
+              Depart
+            </button>
+          </div>
+
           <div ref={canvasRef} className="bouquet-canvas" onClick={() => setActiveFlower(null)}>
 
 
             {arranged.length === 0 && (
               <div className="canvas-placeholder">
-                <img src="/boquet.png" alt="Bouquet" style={{ width: 90, height: 90, objectFit: 'contain' }} />
+                <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo" style={{ height: 108, objectFit: 'contain', marginBottom: 12 }} />
                 <div className="canvas-placeholder-text">
                   Select flowers from the<br />inventory, then press<br />Auto Arrange
                 </div>
@@ -1576,24 +1995,46 @@ export default function BuilderPage() {
           </div>
 
           {/* Greenery */}
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--parchment-deep)' }}>
-            <div className="font-typewriter" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--sepia-light)', marginBottom: 10 }}>Greenery</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['greenery1.png','greenery2.png','greenery3.png','greenery4.png','greenery5.png'].map((file, idx) => (
-                <button
-                  key={file}
-                  id={`btn-greenery-${idx + 1}`}
-                  onClick={() => changeGreenery(file)}
-                  title={`Greenery ${idx + 1}`}
-                  style={{
-                    flex: 1, padding: 3, border: 'none',
-                    background: selectedGreenery === file ? 'var(--parchment-dark)' : 'transparent',
-                    cursor: 'pointer', transition: 'all 0.2s', opacity: selectedGreenery === file ? 1 : 0.6,
-                  }}
-                >
-                  <img src={`/flowers/${file}`} alt={`Greenery ${idx + 1}`} style={{ width: '100%', height: 38, objectFit: 'cover', borderRadius: 3 }} />
-                </button>
-              ))}
+          <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid var(--parchment-deep)' }}>
+            <div className="font-typewriter" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--sepia-light)', marginBottom: 12 }}>Greenery Background</div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }} className="greenery-scroll-container">
+              {['greenery1.png','greenery2.png','greenery3.png','greenery4.png','greenery5.png'].map((file, idx) => {
+                const isSelected = selectedGreenery === file;
+                return (
+                  <button
+                    key={file}
+                    id={`btn-greenery-${idx + 1}`}
+                    onClick={() => changeGreenery(file)}
+                    title={`Greenery ${idx + 1}`}
+                    style={{
+                      flex: '0 0 auto',
+                      width: '72px',
+                      height: '72px',
+                      padding: 4,
+                      border: isSelected ? '2px solid var(--sepia)' : '1px solid var(--parchment-deep)',
+                      background: isSelected ? 'var(--parchment-dark)' : 'rgba(255,255,255,0.4)',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      opacity: isSelected ? 1 : 0.75,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.opacity = '1';
+                        e.currentTarget.style.borderColor = 'var(--sepia-light)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.opacity = '0.75';
+                        e.currentTarget.style.borderColor = 'var(--parchment-deep)';
+                      }
+                    }}
+                  >
+                    <img src={`/flowers/${file}`} alt={`Greenery ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1636,7 +2077,6 @@ export default function BuilderPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
 
