@@ -1263,142 +1263,7 @@ export default function BuilderPage() {
     );
   }
 
-  if (myBouquet && !shareUrl) {
-    const bouquetViewUrl = typeof window !== 'undefined' ? `${window.location.origin}/view/${myBouquet._id}` : '';
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'var(--parchment-light)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Decorative elements */}
-        <div style={{ position: 'absolute', top: -100, left: -100, width: 300, height: 300, background: 'radial-gradient(circle, rgba(212,185,122,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -100, right: -100, width: 300, height: 300, background: 'radial-gradient(circle, rgba(212,185,122,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        {/* Logo */}
-        <div style={{
-          position: 'absolute',
-          top: 24,
-          left: 24,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16
-        }}>
-          <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 40, objectFit: 'contain' }} />
-        </div>
-        
-        {/* Sign Out */}
-        <div style={{
-          position: 'absolute',
-          top: 24,
-          right: 24
-        }}>
-          <button onClick={handleSignOut} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '8px 18px', fontWeight: 'bold' }}>
-            Depart
-          </button>
-        </div>
-
-        <div className="letter-card animate-fadeInUp" style={{
-          width: '100%',
-          maxWidth: 540,
-          padding: '48px 48px 40px',
-          position: 'relative',
-        }}>
-          <div className="letter-card-inner" style={{ padding: '16px' }}>
-            <div style={{ marginBottom: 28, textAlign: 'center' }}>
-              <div className="font-typewriter" style={{ fontSize: '0.6rem', color: 'var(--sepia-light)', textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 8 }}>
-                Artisan Registry
-              </div>
-              <h2 className="font-display" style={{ fontSize: '1.6rem', color: 'var(--ink-brown)', fontWeight: 600, lineHeight: 1.2 }}>
-                One Creation Limit
-              </h2>
-              <p className="font-script" style={{ fontSize: '1.1rem', color: 'var(--sepia)', fontStyle: 'italic', marginTop: 8 }}>
-                "Each patron may hold but one active bouquet in our gallery."
-              </p>
-            </div>
-
-            <div className="ornament-divider" style={{ marginBottom: 24 }}>
-              <span style={{ fontSize: '0.9rem' }}>❧</span>
-            </div>
-
-            <div className="font-typewriter" style={{ fontSize: '0.75rem', color: 'var(--sepia)', lineHeight: 1.7, marginBottom: 24, textAlign: 'justify' }}>
-              To ensure our digital gardens remain pristine and accessible to all, Floravo limits standard members to <strong>one active bouquet creation</strong>. You have already crafted a beautiful arrangement!
-            </div>
-
-            <div style={{ 
-              background: '#fcf8ee', 
-              border: '1px dashed var(--parchment-deep)', 
-              padding: '16px', 
-              borderRadius: '4px',
-              marginBottom: 28,
-              textAlign: 'center'
-            }}>
-              <div className="font-typewriter" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--ink-brown)', marginBottom: 8, letterSpacing: '1px' }}>
-                YOUR ACTIVE BOUQUET LINK
-              </div>
-              <div style={{ 
-                fontSize: '0.7rem', 
-                color: 'var(--sepia)', 
-                wordBreak: 'break-all', 
-                padding: '10px', 
-                background: '#f2e4c0', 
-                border: '1px solid var(--parchment-deep)', 
-                marginBottom: 12,
-                fontFamily: 'var(--font-typewriter)'
-              }}>
-                {bouquetViewUrl}
-              </div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(bouquetViewUrl);
-                    alert('Link copied to clipboard!');
-                  }}
-                  className="btn-secondary"
-                  style={{ padding: '6px 14px', fontSize: '0.68rem' }}
-                >
-                  Copy Link
-                </button>
-                <a 
-                  href={bouquetViewUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="btn-secondary"
-                  style={{ padding: '6px 14px', fontSize: '0.68rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-                >
-                  View Creation
-                </a>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button
-                onClick={handleDeleteMyBouquet}
-                disabled={deletingBouquet}
-                className="btn-primary"
-                style={{ 
-                  background: 'var(--postal-red)', 
-                  borderColor: 'var(--postal-red)',
-                  color: 'white',
-                  width: '100%' 
-                }}
-              >
-                {deletingBouquet ? 'Tearing down bouquet...' : '🗑 Delete Bouquet & Start Anew'}
-              </button>
-              <div className="font-typewriter" style={{ fontSize: '0.62rem', color: 'var(--sepia-light)', textAlign: 'center', fontStyle: 'italic' }}>
-                *Deleting this will deactivate the link above permanently.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (currentStep === 'personalize') {
     return (
@@ -1977,31 +1842,71 @@ export default function BuilderPage() {
                 >
                   Back to Card
                 </button>
-                <button 
+                 <button 
                   onClick={saveAndShareBouquet} 
-                  disabled={saving} 
+                  disabled={saving || !!myBouquet} 
                   style={{ 
-                    background: 'black', 
-                    color: 'white',
-                    border: '1px solid black', 
+                    background: myBouquet ? '#e0e0e0' : 'black', 
+                    color: myBouquet ? '#888888' : 'white',
+                    border: '1px solid ' + (myBouquet ? '#cccccc' : 'black'), 
                     padding: '12px 48px', 
                     letterSpacing: '2px', 
                     fontFamily: 'var(--font-typewriter)', 
                     fontSize: '0.75rem', 
                     textTransform: 'uppercase',
-                    cursor: 'pointer',
+                    cursor: (saving || myBouquet) ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#333';
+                    if (!myBouquet) {
+                      e.currentTarget.style.background = '#333';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'black';
+                    if (!myBouquet) {
+                      e.currentTarget.style.background = 'black';
+                    }
                   }}
                 >
-                  {saving ? 'Saving...' : 'Save & Share'}
+                  {saving ? 'Saving...' : myBouquet ? 'LIMIT: 1 BOUQUET' : 'Save & Share'}
                 </button>
               </div>
+
+              {myBouquet && (
+                <div style={{ 
+                  marginTop: 20, 
+                  fontFamily: 'var(--font-typewriter)', 
+                  fontSize: '0.7rem', 
+                  color: '#8a6d3b', 
+                  background: '#fcf8e3', 
+                  border: '1px solid #faebcc', 
+                  padding: '12px 20px', 
+                  maxWidth: 480, 
+                  lineHeight: 1.5,
+                  textAlign: 'center',
+                  animation: 'fadeInUp 0.3s ease'
+                }}>
+                  You already have an active bouquet in our gallery. To share this new creation, please{' '}
+                  <button 
+                    onClick={handleDeleteMyBouquet} 
+                    disabled={deletingBouquet}
+                    style={{ 
+                      textDecoration: 'underline', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      padding: 0, 
+                      fontFamily: 'inherit', 
+                      fontSize: 'inherit', 
+                      fontWeight: 'bold', 
+                      color: 'var(--postal-red)' 
+                    }}
+                  >
+                    {deletingBouquet ? 'deleting...' : 'delete your existing bouquet'}
+                  </button>
+                  .
+                </div>
+              )}
 
               {shareUrl && (
                 <div style={{ marginTop: 24, padding: '16px', border: '1px solid black', background: 'white', fontFamily: 'var(--font-typewriter)', textAlign: 'center', width: '100%', maxWidth: 450, boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
