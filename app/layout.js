@@ -15,9 +15,6 @@ export default function RootLayout({ children }) {
       </head>
       <body className="parchment-bg" style={{ position: 'relative' }}>
         {children}
-        {/* Global Lineart Background Elements */}
-        <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'fixed', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-        <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'fixed', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
       </body>
     </html>
   );

@@ -191,10 +191,6 @@ export default function ViewBouquetPage() {
         <button onClick={skipToEnd} style={headerSkipBtnStyle(false)}>SKIP ➔</button>
       </div>
 
-      {/* Decorative leaf silhouettes */}
-      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-
       {particles.map(p => <FloralParticle key={p.key} file={p.file} left={p.left} top={p.top} size={p.size} delay={p.delay} duration={p.duration} />)}
       
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2.5, ease: 'easeOut' }}
@@ -233,10 +229,6 @@ export default function ViewBouquetPage() {
   // ── SCENE 1: Envelope ──────────────────────────────────────────────────
   if (scene === 1) return (
     <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-      
-      {/* Background Ornaments */}
-      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
 
       <button onClick={skipToEnd} style={skipBtnStyle}>Skip ➔</button>
       <AnimatePresence>
@@ -423,10 +415,6 @@ export default function ViewBouquetPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'#f5ede0', fontFamily:'var(--font-body)', position: 'relative', overflow: 'hidden' }}>
-
-      {/* Background Ornaments */}
-      <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-      <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
 
       {/* ── TOP BAR ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 40px', borderBottom:'1px solid #e8d9c8', background:'#f5ede0', position: 'relative', zIndex: 10 }}>

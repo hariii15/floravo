@@ -167,6 +167,94 @@ function generateArrangement(selectedFlowers, bgFile = 'greenery1.png') {
   return result;
 }
 
+const FILTER_PRESETS = [
+  {
+    id: 'original',
+    name: 'Original',
+    filter: 'none',
+    overlayColor: null,
+    overlayBlendMode: null,
+    overlayOpacity: 0,
+    grainOpacity: 0,
+    vignette: false,
+    blur: false,
+    description: 'No filters applied'
+  },
+  {
+    id: 'floravo',
+    name: 'Floravo Signature',
+    filter: 'brightness(1.05) contrast(0.92) saturate(0.82) sepia(0.1)',
+    overlayColor: '#f4ebdb',
+    overlayBlendMode: 'multiply',
+    overlayOpacity: 0.12,
+    grainOpacity: 0.03,
+    vignette: true,
+    blur: false,
+    description: 'Pressed flowers & warm luxury memories'
+  },
+  {
+    id: 'soft_romantic',
+    name: 'Soft Romantic Vintage ⭐',
+    filter: 'sepia(0.12) saturate(0.85) contrast(0.92) brightness(1.05)',
+    overlayColor: '#f5ecd4',
+    overlayBlendMode: 'multiply',
+    overlayOpacity: 0.12,
+    grainOpacity: 0.0,
+    vignette: false,
+    blur: false,
+    description: 'Creamy whites & soft romantic tones'
+  },
+  {
+    id: 'antique',
+    name: 'Antique Letter Look',
+    filter: 'sepia(0.25) contrast(0.90) brightness(1.03) saturate(0.75)',
+    overlayColor: null,
+    overlayBlendMode: null,
+    overlayOpacity: 0.0,
+    grainOpacity: 0.06,
+    vignette: false,
+    blur: false,
+    description: 'Century-old vintage postcard feel'
+  },
+  {
+    id: 'film_90s',
+    name: 'Film Camera 1990s',
+    filter: 'contrast(0.95) brightness(1.08) saturate(0.90) sepia(0.08)',
+    overlayColor: null,
+    overlayBlendMode: null,
+    overlayOpacity: 0.0,
+    grainOpacity: 0.0,
+    vignette: false,
+    blur: true,
+    description: 'Soft focus nostalgic memory vibe'
+  },
+  {
+    id: 'pressed_flower',
+    name: 'Pressed Flower Journal 🌸',
+    filter: 'brightness(1.08) contrast(0.88) saturate(0.82) sepia(0.10)',
+    overlayColor: '#f6f1e7',
+    overlayBlendMode: 'soft-light',
+    overlayOpacity: 1.0,
+    grainOpacity: 0.0,
+    vignette: false,
+    blur: false,
+    description: 'Muted greens & botanical journal style'
+  },
+  {
+    id: 'luxury_editorial',
+    name: 'Luxury Editorial',
+    filter: 'brightness(1.05) contrast(0.90) saturate(0.75)',
+    overlayColor: null,
+    overlayBlendMode: null,
+    overlayOpacity: 0.0,
+    grainOpacity: 0.0,
+    vignette: false,
+    blur: false,
+    opacity: 0.96,
+    description: 'Premium minimal Vogue photoshoot feel'
+  }
+];
+
 const BASE_FLOWER_SIZE = BASE_SIZE;
 
 export default function BuilderPage() {
@@ -195,33 +283,214 @@ export default function BuilderPage() {
   const mediaRecorderRef = useRef(null);
   const voiceChunksRef = useRef([]);
 
+  const [showCropper, setShowCropper] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState('');
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imgWidth, setImgWidth] = useState(0);
+  const [imgHeight, setImgHeight] = useState(0);
+  const [polaroidError, setPolaroidError] = useState('');
+
+  const [cropperStep, setCropperStep] = useState('crop'); // 'crop' or 'filter'
+  const [croppedTempDataUrl, setCroppedTempDataUrl] = useState('');
+  const [selectedPresetId, setSelectedPresetId] = useState('floravo');
+
+  const recordingTimeoutRef = useRef(null);
+  const recordingIntervalRef = useRef(null);
+  const [voiceSecondsLeft, setVoiceSecondsLeft] = useState(15);
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setPolaroidError('Image file is too large (maximum 5MB).');
+        return;
+      }
+      setPolaroidError('');
       const reader = new FileReader();
-      reader.onload = (event) => setPolaroidImage(event.target.result);
+      reader.onload = (event) => {
+        setCropImageSrc(event.target.result);
+        setCropperStep('crop');
+        setShowCropper(true);
+      };
       reader.readAsDataURL(file);
     }
   };
 
   useEffect(() => {
+    if (!cropImageSrc) return;
+    const img = new Image();
+    img.onload = () => {
+      const aspect = img.width / img.height;
+      let w = 200;
+      let h = 200;
+      if (aspect > 1) {
+        h = 200;
+        w = 200 * aspect;
+      } else {
+        w = 200;
+        h = 200 / aspect;
+      }
+      setImgWidth(w);
+      setImgHeight(h);
+      setZoom(1);
+      setOffset({ x: 0, y: 0 });
+    };
+    img.src = cropImageSrc;
+  }, [cropImageSrc]);
+
+  const handleCropNext = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+
+    const img = new Image();
+    img.onload = () => {
+      const renderedW = imgWidth * zoom;
+      const renderedH = imgHeight * zoom;
+
+      const renderedLeft = (200 - renderedW) / 2 + offset.x;
+      const renderedTop = (200 - renderedH) / 2 + offset.y;
+
+      const scaleX = img.width / renderedW;
+      const scaleY = img.height / renderedH;
+
+      const sx = -renderedLeft * scaleX;
+      const sy = -renderedTop * scaleY;
+      const sWidth = 200 * scaleX;
+      const sHeight = 200 * scaleY;
+
+      ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, 400, 400);
+      setCroppedTempDataUrl(canvas.toDataURL('image/jpeg', 0.95));
+      setCropperStep('filter');
+    };
+    img.src = cropImageSrc;
+  };
+
+  const handleFilterSave = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+
+    const img = new Image();
+    img.onload = () => {
+      const preset = FILTER_PRESETS.find(p => p.id === selectedPresetId) || FILTER_PRESETS[0];
+
+      // Draw base image
+      ctx.drawImage(img, 0, 0, 400, 400);
+
+      // Apply CSS filter
+      if (preset.filter && preset.filter !== 'none') {
+        ctx.clearRect(0, 0, 400, 400);
+        ctx.save();
+        ctx.filter = preset.filter;
+        ctx.drawImage(img, 0, 0, 400, 400);
+        ctx.restore();
+      }
+
+      // Apply matte effect (opacity 96%)
+      if (preset.opacity !== undefined) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 400, 400);
+        ctx.restore();
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 400;
+        tempCanvas.height = 400;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(canvas, 0, 0);
+
+        ctx.clearRect(0, 0, 400, 400);
+        ctx.save();
+        ctx.globalAlpha = preset.opacity;
+        ctx.drawImage(tempCanvas, 0, 0);
+        ctx.restore();
+      }
+
+      // Apply overlay color
+      if (preset.overlayColor) {
+        ctx.save();
+        ctx.globalCompositeOperation = preset.overlayBlendMode || 'source-over';
+        ctx.fillStyle = preset.overlayColor;
+        ctx.globalAlpha = preset.overlayOpacity || 1.0;
+        ctx.fillRect(0, 0, 400, 400);
+        ctx.restore();
+      }
+
+      // Apply vignette
+      if (preset.vignette) {
+        ctx.save();
+        const grad = ctx.createRadialGradient(200, 200, 200 * 0.65, 200, 200, 200);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.08)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 400, 400);
+        ctx.restore();
+      }
+
+      // Apply grain
+      if (preset.grainOpacity > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha = preset.grainOpacity;
+        const imgData = ctx.getImageData(0, 0, 400, 400);
+        const data = imgData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const noise = (Math.random() - 0.5) * 50;
+          data[i] = Math.min(255, Math.max(0, data[i] + noise));
+          data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
+          data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
+        }
+        ctx.putImageData(imgData, 0, 0);
+        ctx.restore();
+      }
+
+      setPolaroidImage(canvas.toDataURL('image/jpeg', 0.9));
+      setShowCropper(false);
+      setCropImageSrc('');
+      setCroppedTempDataUrl('');
+      setCropperStep('crop');
+    };
+    img.src = croppedTempDataUrl;
+  };
+
+  useEffect(() => {
     return () => {
       if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
+      if (recordingTimeoutRef.current) clearTimeout(recordingTimeoutRef.current);
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
     };
   }, [voicePreviewUrl]);
 
   const clearVoiceNote = () => {
     if (voicePreviewUrl) URL.revokeObjectURL(voicePreviewUrl);
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
     setVoiceClip(null);
     setVoicePreviewUrl('');
     setVoiceError('');
     setRecordingVoice(false);
+    setVoiceSecondsLeft(15);
     voiceChunksRef.current = [];
     mediaRecorderRef.current = null;
   };
 
   const startVoiceRecording = async () => {
     setVoiceError('');
+    setVoiceSecondsLeft(15);
 
     if (!navigator?.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setVoiceError('Voice notes are not supported in this browser.');
@@ -250,16 +519,47 @@ export default function BuilderPage() {
         setRecordingVoice(false);
         voiceChunksRef.current = [];
         stream.getTracks().forEach((track) => track.stop());
+
+        if (recordingTimeoutRef.current) {
+          clearTimeout(recordingTimeoutRef.current);
+          recordingTimeoutRef.current = null;
+        }
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
       };
 
       mediaRecorderRef.current = recorder;
       setRecordingVoice(true);
       recorder.start();
+
+      recordingIntervalRef.current = setInterval(() => {
+        setVoiceSecondsLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(recordingIntervalRef.current);
+            recordingIntervalRef.current = null;
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      recordingTimeoutRef.current = setTimeout(() => {
+        if (recorder && recorder.state !== 'inactive') {
+          recorder.stop();
+        }
+      }, 15000);
+
     } catch (error) {
       setVoiceError(error?.name === 'NotAllowedError'
         ? 'Microphone permission was denied.'
         : 'Could not start voice recording.');
       setRecordingVoice(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
     }
   };
 
@@ -267,6 +567,14 @@ export default function BuilderPage() {
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') {
       recorder.stop();
+    }
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
     }
   };
 
@@ -578,63 +886,52 @@ export default function BuilderPage() {
     return (
       <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
         
-        {/* Background Ornaments */}
-        <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-        <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-
         <div style={{ padding: '40px 0 20px', position: 'relative', zIndex: 10 }}>
           <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 60, objectFit: 'contain' }} />
         </div>
         
-        <div className="font-typewriter" style={{ fontSize: '1rem', letterSpacing: '4px', margin: '0 0 40px 0', color: 'var(--ink-brown)', fontWeight: 'bold' }}>
+        <div className="font-typewriter" style={{ fontSize: '1rem', letterSpacing: '4px', margin: '0 0 40px 0', color: 'var(--ink-brown)', fontWeight: 'bold', zIndex: 10 }}>
           WRITE THE CARD
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 60, flex: 1, width: '100%', maxWidth: 1100 }}>
-          <div style={{ flex: 0.7, display: 'flex', justifyContent: 'flex-end', opacity: 0.9 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 60, flex: 1, width: '100%', maxWidth: 1100, position: 'relative', zIndex: 10 }}>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', opacity: 0.9 }}>
              <img src="/flowers/lilly.png" style={{ height: 300, objectFit: 'contain' }} alt="Decoration" />
           </div>
           
-          <div style={{ background: '#fdfbf7', border: '1px solid #ede0cc', borderRadius: 24, padding: '40px 48px', width: 420, minHeight: 400, display: 'flex', flexDirection: 'column', boxShadow: '0 16px 48px rgba(59,32,10,0.06)', position: 'relative', overflow: 'hidden' }}>
-             
-             {/* Corner Leaf Sprigs */}
-             <LeafSprig style={{ position: 'absolute', top: 18, left: 18, transform: 'rotate(0deg)' }} />
-             <LeafSprig style={{ position: 'absolute', bottom: 18, right: 18, transform: 'scale(-1)' }} />
-
-             {/* Lined paper effect */}
-             <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #ede0cc 31px, #ede0cc 32px)', pointerEvents: 'none', opacity: 0.6 }} />
-
-             <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%', flex: 1, paddingTop: 8 }}>
+          <div style={{ background: 'white', border: '2px solid black', padding: '40px', width: 420, minHeight: 400, display: 'flex', flexDirection: 'column', boxShadow: 'none', position: 'relative' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
-                 <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#3b200a' }}>Dear </div>
+                 <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'black' }}>Dear </div>
                  <input 
                    value={noteRecipient} 
                    onChange={e => setNoteRecipient(e.target.value)} 
-                   style={{ border: 'none', borderBottom: '1px dashed #ede0cc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#3b200a', marginLeft: 8, flex: 1, background: 'transparent' }}
+                   style={{ border: 'none', borderBottom: '1px dashed #999', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: 'black', marginLeft: 8, flex: 1, background: 'transparent' }}
                  />
-                 <span className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#3b200a' }}>,</span>
+                 <span className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'black' }}>,</span>
                </div>
                <textarea 
                  value={noteText} onChange={e => setNoteText(e.target.value)}
                  maxLength={120}
-                 style={{ flex: 1, border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.05rem', color: '#3b200a', lineHeight: '32px', background: 'transparent' }}
+                 style={{ flex: 1, border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.05rem', color: 'black', lineHeight: '1.6', background: 'transparent' }}
                  placeholder="I have so much to tell you, but only this much space on this card! Still, you must know..."
                />
-               <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'right', marginTop: 20, color: '#3b200a' }}>Sincerely,</div>
+               <div className="font-typewriter" style={{ fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'right', marginTop: 20, color: 'black' }}>Sincerely,</div>
                <input 
                  value={noteSender} 
                  onChange={e => setNoteSender(e.target.value)}
-                 style={{ border: 'none', borderBottom: '1px dashed #ede0cc', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: '#3b200a', textAlign: 'right', background: 'transparent', width: '100%', marginTop: 4 }}
+                 style={{ border: 'none', borderBottom: '1px dashed #999', outline: 'none', fontFamily: 'var(--font-typewriter)', fontSize: '1.2rem', color: 'black', textAlign: 'right', background: 'transparent', width: '100%', marginTop: 4 }}
                />
+               <div style={{ borderBottom: '1px dashed #ccc', marginTop: 24 }} />
              </div>
           </div>
 
-          <div style={{ flex: 1.3, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
             <img src="/flowers/sunflower.png" style={{ height: 240, objectFit: 'contain', opacity: 0.9 }} alt="Decoration" />
             
-            <div style={{ textAlign: 'center', width: '100%', maxWidth: 220, paddingLeft: 20 }}>
+            <div style={{ textAlign: 'left', width: '100%', maxWidth: 220 }}>
               {!polaroidImage ? (
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '1px solid black', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', background: 'white' }}>
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '1px solid black', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.8rem', background: 'white', width: '100%' }}>
                   <span>📷 Add Polaroid</span>
                   <input type="file" accept="image/png, image/jpeg" onChange={handleImageUpload} style={{ display: 'none' }} />
                 </label>
@@ -648,9 +945,14 @@ export default function BuilderPage() {
                   </button>
                 </div>
               )}
+              {polaroidError && (
+                <div style={{ color: 'var(--postal-red)', fontFamily: 'var(--font-typewriter)', fontSize: '0.7rem', marginTop: 6, lineHeight: 1.4 }}>
+                  {polaroidError}
+                </div>
+              )}
             </div>
-
-            <div style={{ width: '100%', maxWidth: 220, paddingLeft: 20 }}>
+ 
+            <div style={{ width: '100%', maxWidth: 220 }}>
               <div style={{ border: '1px solid black', background: 'white', padding: '14px 14px 12px', fontFamily: 'var(--font-typewriter)' }}>
                 <div style={{ fontSize: '0.65rem', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8, color: 'var(--sepia-light)' }}>
                   Voice Message
@@ -660,7 +962,7 @@ export default function BuilderPage() {
                   onClick={toggleVoiceRecording}
                   style={{ width: '100%', border: '1px solid black', background: recordingVoice ? 'black' : 'transparent', color: recordingVoice ? 'white' : 'black', padding: '10px 12px', cursor: 'pointer', fontFamily: 'var(--font-typewriter)', fontSize: '0.75rem', letterSpacing: '1px' }}
                 >
-                  {recordingVoice ? 'Stop Recording' : voicePreviewUrl ? 'Re-record Voice' : 'Record Voice'}
+                  {recordingVoice ? `Stop (${voiceSecondsLeft}s left)` : voicePreviewUrl ? 'Re-record Voice' : 'Record Voice'}
                 </button>
                 {voicePreviewUrl && (
                   <audio controls src={voicePreviewUrl} style={{ width: '100%', marginTop: 10 }} />
@@ -693,11 +995,292 @@ export default function BuilderPage() {
             </div>
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: 16, padding: '40px 0 60px' }}>
-          <button onClick={() => setCurrentStep('arrange')} style={{ border: '1px solid black', background: 'transparent', padding: '10px 32px', fontFamily: 'var(--font-typewriter)', cursor: 'pointer', letterSpacing: '2px' }}>BACK</button>
-          <button onClick={() => setCurrentStep('review')} style={{ border: '1px solid black', background: 'black', color: 'white', padding: '10px 32px', fontFamily: 'var(--font-typewriter)', cursor: 'pointer', letterSpacing: '2px' }}>NEXT</button>
+ 
+        <div style={{ display: 'flex', gap: 16, padding: '40px 0 60px', justifyContent: 'center', position: 'relative', zIndex: 10 }}>
+          <button onClick={() => setCurrentStep('arrange')} style={{ border: '1px solid black', background: 'white', color: 'black', padding: '10px 32px', fontFamily: 'var(--font-typewriter)', cursor: 'pointer', letterSpacing: '2px', textTransform: 'uppercase' }}>BACK</button>
+          <button onClick={() => setCurrentStep('review')} style={{ border: '1px solid black', background: 'black', color: 'white', padding: '10px 32px', fontFamily: 'var(--font-typewriter)', cursor: 'pointer', letterSpacing: '2px', textTransform: 'uppercase' }}>NEXT</button>
         </div>
+
+        {/* Cropper Modal Overlay */}
+        {showCropper && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0, 0, 0, 0.65)'
+          }}>
+            <div style={{
+              background: '#fdfbf7',
+              border: '2px solid black',
+              padding: '24px',
+              width: '340px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+              fontFamily: 'var(--font-typewriter)',
+              position: 'relative'
+            }}>
+              {cropperStep === 'crop' ? (
+                <>
+                  <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '6px', color: 'black', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Crop Your Photo
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#666', marginBottom: '16px', textAlign: 'center', lineHeight: 1.4 }}>
+                    Drag the image to adjust position,<br />use the slider below to zoom.
+                  </div>
+
+                  {/* Cropper Frame Container (200x200) */}
+                  <div 
+                    style={{
+                      position: 'relative',
+                      width: 200,
+                      height: 200,
+                      overflow: 'hidden',
+                      border: '2px solid black',
+                      cursor: isDragging ? 'grabbing' : 'grab',
+                      background: '#eee',
+                      touchAction: 'none'
+                    }}
+                    onPointerDown={(e) => {
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      setIsDragging(true);
+                      setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+                    }}
+                    onPointerMove={(e) => {
+                      if (!isDragging) return;
+                      setOffset({
+                        x: e.clientX - dragStart.x,
+                        y: e.clientY - dragStart.y
+                      });
+                    }}
+                    onPointerUp={() => setIsDragging(false)}
+                    onPointerCancel={() => setIsDragging(false)}
+                  >
+                    <img
+                      src={cropImageSrc}
+                      alt="Crop Preview"
+                      draggable={false}
+                      style={{
+                        position: 'absolute',
+                        width: imgWidth * zoom,
+                        height: imgHeight * zoom,
+                        left: (200 - imgWidth * zoom) / 2 + offset.x,
+                        top: (200 - imgHeight * zoom) / 2 + offset.y,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                        filter: 'sepia(0.2) contrast(1.05) brightness(1.05) saturate(0.9) hue-rotate(-5deg)'
+                      }}
+                    />
+                    {/* Subtle grid lines in crop window to help alignment */}
+                    <div style={{ position: 'absolute', inset: 0, border: '1px dashed rgba(255,255,255,0.45)', pointerEvents: 'none' }} />
+                  </div>
+
+                  {/* Zoom Slider */}
+                  <div style={{ width: '100%', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'black', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                      <span>Zoom</span>
+                      <span>{Math.round(zoom * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="3"
+                      step="0.01"
+                      value={zoom}
+                      onChange={(e) => setZoom(parseFloat(e.target.value))}
+                      style={{
+                        width: '100%',
+                        accentColor: 'black',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '20px' }}>
+                    <button
+                      onClick={() => {
+                        setShowCropper(false);
+                        setCropImageSrc('');
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 0',
+                        border: '1px solid black',
+                        background: 'white',
+                        color: 'black',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-typewriter)',
+                        fontSize: '0.75rem',
+                        letterSpacing: '1px',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCropNext}
+                      style={{
+                        flex: 1,
+                        padding: '10px 0',
+                        border: '1px solid black',
+                        background: 'black',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-typewriter)',
+                        fontSize: '0.75rem',
+                        letterSpacing: '1px',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '6px', color: 'black', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Vintage Presets
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#666', marginBottom: '16px', textAlign: 'center', lineHeight: 1.4 }}>
+                    Choose a vintage photo preset formula.
+                  </div>
+
+                  {/* Filter Preview Box (200x200) */}
+                  <div 
+                    style={{
+                      position: 'relative',
+                      width: 200,
+                      height: 200,
+                      overflow: 'hidden',
+                      border: '2px solid black',
+                      background: '#eee'
+                    }}
+                  >
+                    {/* Base Image with CSS filters */}
+                    <img
+                      src={croppedTempDataUrl}
+                      alt="Filter Preview"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        filter: `${FILTER_PRESETS.find(p => p.id === selectedPresetId)?.filter || 'none'}${FILTER_PRESETS.find(p => p.id === selectedPresetId)?.blur ? ' blur(0.5px)' : ''}`,
+                        opacity: FILTER_PRESETS.find(p => p.id === selectedPresetId)?.opacity !== undefined ? FILTER_PRESETS.find(p => p.id === selectedPresetId)?.opacity : 1
+                      }}
+                    />
+
+                    {/* Color Overlay */}
+                    {FILTER_PRESETS.find(p => p.id === selectedPresetId)?.overlayColor && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: FILTER_PRESETS.find(p => p.id === selectedPresetId)?.overlayColor,
+                        opacity: FILTER_PRESETS.find(p => p.id === selectedPresetId)?.overlayOpacity,
+                        mixBlendMode: FILTER_PRESETS.find(p => p.id === selectedPresetId)?.overlayBlendMode,
+                        pointerEvents: 'none'
+                      }} />
+                    )}
+
+                    {/* Vignette Overlay */}
+                    {FILTER_PRESETS.find(p => p.id === selectedPresetId)?.vignette && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'radial-gradient(circle, transparent 65%, rgba(0,0,0,0.08) 100%)',
+                        pointerEvents: 'none'
+                      }} />
+                    )}
+
+                    {/* Grain Overlay */}
+                    {(FILTER_PRESETS.find(p => p.id === selectedPresetId)?.grainOpacity || 0) > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        opacity: (FILTER_PRESETS.find(p => p.id === selectedPresetId)?.grainOpacity || 0) * 2.5,
+                        mixBlendMode: 'overlay',
+                        pointerEvents: 'none',
+                        backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")'
+                      }} />
+                    )}
+                  </div>
+
+                  {/* Scrollable Preset Selector List */}
+                  <div style={{ width: '100%', height: '140px', overflowY: 'auto', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px', border: '1px solid #ddd', padding: '6px', background: 'white' }}>
+                    {FILTER_PRESETS.map((preset) => {
+                      const isActive = preset.id === selectedPresetId;
+                      return (
+                        <button
+                          key={preset.id}
+                          onClick={() => setSelectedPresetId(preset.id)}
+                          style={{
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '8px 10px',
+                            border: isActive ? '2px solid black' : '1px solid #eee',
+                            background: isActive ? '#f9f6f0' : 'transparent',
+                            cursor: 'pointer',
+                            fontFamily: 'var(--font-typewriter)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'black' }}>
+                            {preset.name}
+                          </div>
+                          <div style={{ fontSize: '0.62rem', color: '#666', marginTop: '3px', lineHeight: 1.3 }}>
+                            {preset.description}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '20px' }}>
+                    <button
+                      onClick={() => setCropperStep('crop')}
+                      style={{
+                        flex: 1,
+                        padding: '10px 0',
+                        border: '1px solid black',
+                        background: 'white',
+                        color: 'black',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-typewriter)',
+                        fontSize: '0.75rem',
+                        letterSpacing: '1px',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleFilterSave}
+                      style={{
+                        flex: 1,
+                        padding: '10px 0',
+                        border: '1px solid black',
+                        background: 'black',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-typewriter)',
+                        fontSize: '0.75rem',
+                        letterSpacing: '1px',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -706,10 +1289,6 @@ export default function BuilderPage() {
     return (
        <div style={{ minHeight: '100vh', background: '#fdf6e3', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
           
-          {/* Background Ornaments */}
-          <img src="/flowers/lineart%20left.png" alt="" style={{ position: 'absolute', left: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-          <img src="/flowers/lineart%20right.png" alt="" style={{ position: 'absolute', right: 0, bottom: 0, height: '420px', width: 'auto', objectFit: 'contain', pointerEvents: 'none', zIndex: 0, opacity: 0.9 }} />
-
           <div style={{ padding: '40px 0 20px', position: 'relative', zIndex: 10 }}>
             <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 60, objectFit: 'contain' }} />
           </div>
@@ -922,7 +1501,7 @@ export default function BuilderPage() {
 
             {arranged.length === 0 && (
               <div className="canvas-placeholder">
-                <div className="canvas-placeholder-icon">💐</div>
+                <img src="/boquet.png" alt="Bouquet" style={{ width: 90, height: 90, objectFit: 'contain' }} />
                 <div className="canvas-placeholder-text">
                   Select flowers from the<br />inventory, then press<br />Auto Arrange
                 </div>
