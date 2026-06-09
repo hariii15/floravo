@@ -264,6 +264,9 @@ export default function BuilderPage() {
   const [isApproved, setIsApproved] = useState(null);
   const [userRecord, setUserRecord] = useState(null);
   const [checkingApproval, setCheckingApproval] = useState(true);
+  const [myBouquet, setMyBouquet] = useState(null);
+  const [checkingMyBouquet, setCheckingMyBouquet] = useState(true);
+  const [deletingBouquet, setDeletingBouquet] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
@@ -642,13 +645,34 @@ export default function BuilderPage() {
           if (data.success) {
             setUserRecord(data.user);
             setIsApproved(data.user.approved);
+            if (data.user.approved) {
+              try {
+                const bResponse = await fetch(`${apiHost}/api/bouquets/my-bouquet`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                });
+                const bData = await bResponse.json();
+                if (bData.success && bData.bouquet) {
+                  setMyBouquet(bData.bouquet);
+                }
+              } catch (bErr) {
+                console.error('Failed to fetch user bouquet:', bErr);
+              } finally {
+                setCheckingMyBouquet(false);
+              }
+            } else {
+              setCheckingMyBouquet(false);
+            }
           } else {
             console.error('Failed to sync user auth status:', data.error);
             setIsApproved(false);
+            setCheckingMyBouquet(false);
           }
         } catch (err) {
           console.error('Auth sync error:', err);
           setIsApproved(false);
+          setCheckingMyBouquet(false);
         } finally {
           setCheckingApproval(false);
           setCheckingAuth(false);
@@ -965,6 +989,15 @@ export default function BuilderPage() {
       if (data.success) {
         const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
         setShareUrl(`${origin}/view/${data.id}`);
+        setMyBouquet({
+          _id: data.id,
+          noteRecipient,
+          noteSender,
+          noteText,
+          arranged: payload.arranged,
+          polaroidImage,
+          voiceNote: voiceNoteBase64
+        });
       } else {
         alert('Failed to save: ' + (data.error || 'Unknown error'));
       }
@@ -977,6 +1010,38 @@ export default function BuilderPage() {
   };
 
   const handleSignOut = async () => { await logOut(); router.replace('/'); };
+
+  const handleDeleteMyBouquet = async () => {
+    if (!myBouquet) return;
+    if (!confirm("Are you sure you want to delete your current bouquet? This cannot be undone.")) {
+      return;
+    }
+    setDeletingBouquet(true);
+    try {
+      const u = auth.currentUser;
+      if (!u) return;
+      const token = await u.getIdToken(true);
+      const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiHost}/api/bouquets/${myBouquet._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMyBouquet(null);
+        alert("Bouquet deleted successfully! You can now create a new one.");
+      } else {
+        alert("Failed to delete bouquet: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Delete bouquet error:", err);
+      alert("An error occurred while deleting the bouquet.");
+    } finally {
+      setDeletingBouquet(false);
+    }
+  };
 
   const filteredFlowers = filterCat === 'all' ? FLOWERS : FLOWERS.filter((f) => f.category === filterCat);
 
@@ -1115,6 +1180,143 @@ export default function BuilderPage() {
               <span className="font-typewriter" style={{ fontSize: '0.65rem', color: 'var(--sepia-light)' }}>
                 Need access? Please contact <a href="mailto:info@floravo.com" style={{ textDecoration: 'underline', color: 'var(--sepia)' }}>info@floravo.com</a>.
               </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (myBouquet && !shareUrl) {
+    const bouquetViewUrl = typeof window !== 'undefined' ? `${window.location.origin}/view/${myBouquet._id}` : '';
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--parchment-light)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Decorative elements */}
+        <div style={{ position: 'absolute', top: -100, left: -100, width: 300, height: 300, background: 'radial-gradient(circle, rgba(212,185,122,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -100, right: -100, width: 300, height: 300, background: 'radial-gradient(circle, rgba(212,185,122,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        {/* Logo */}
+        <div style={{
+          position: 'absolute',
+          top: 24,
+          left: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16
+        }}>
+          <img src="/flowers/Floravo - 3 - Edited.png" alt="Floravo Logo" style={{ height: 40, objectFit: 'contain' }} />
+        </div>
+        
+        {/* Sign Out */}
+        <div style={{
+          position: 'absolute',
+          top: 24,
+          right: 24
+        }}>
+          <button onClick={handleSignOut} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '8px 18px', fontWeight: 'bold' }}>
+            Depart
+          </button>
+        </div>
+
+        <div className="letter-card animate-fadeInUp" style={{
+          width: '100%',
+          maxWidth: 540,
+          padding: '48px 48px 40px',
+          position: 'relative',
+        }}>
+          <div className="letter-card-inner" style={{ padding: '16px' }}>
+            <div style={{ marginBottom: 28, textAlign: 'center' }}>
+              <div className="font-typewriter" style={{ fontSize: '0.6rem', color: 'var(--sepia-light)', textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 8 }}>
+                Artisan Registry
+              </div>
+              <h2 className="font-display" style={{ fontSize: '1.6rem', color: 'var(--ink-brown)', fontWeight: 600, lineHeight: 1.2 }}>
+                One Creation Limit
+              </h2>
+              <p className="font-script" style={{ fontSize: '1.1rem', color: 'var(--sepia)', fontStyle: 'italic', marginTop: 8 }}>
+                "Each patron may hold but one active bouquet in our gallery."
+              </p>
+            </div>
+
+            <div className="ornament-divider" style={{ marginBottom: 24 }}>
+              <span style={{ fontSize: '0.9rem' }}>❧</span>
+            </div>
+
+            <div className="font-typewriter" style={{ fontSize: '0.75rem', color: 'var(--sepia)', lineHeight: 1.7, marginBottom: 24, textAlign: 'justify' }}>
+              To ensure our digital gardens remain pristine and accessible to all, Floravo limits standard members to <strong>one active bouquet creation</strong>. You have already crafted a beautiful arrangement!
+            </div>
+
+            <div style={{ 
+              background: '#fcf8ee', 
+              border: '1px dashed var(--parchment-deep)', 
+              padding: '16px', 
+              borderRadius: '4px',
+              marginBottom: 28,
+              textAlign: 'center'
+            }}>
+              <div className="font-typewriter" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--ink-brown)', marginBottom: 8, letterSpacing: '1px' }}>
+                YOUR ACTIVE BOUQUET LINK
+              </div>
+              <div style={{ 
+                fontSize: '0.7rem', 
+                color: 'var(--sepia)', 
+                wordBreak: 'break-all', 
+                padding: '10px', 
+                background: '#f2e4c0', 
+                border: '1px solid var(--parchment-deep)', 
+                marginBottom: 12,
+                fontFamily: 'var(--font-typewriter)'
+              }}>
+                {bouquetViewUrl}
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(bouquetViewUrl);
+                    alert('Link copied to clipboard!');
+                  }}
+                  className="btn-secondary"
+                  style={{ padding: '6px 14px', fontSize: '0.68rem' }}
+                >
+                  Copy Link
+                </button>
+                <a 
+                  href={bouquetViewUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{ padding: '6px 14px', fontSize: '0.68rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  View Creation
+                </a>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button
+                onClick={handleDeleteMyBouquet}
+                disabled={deletingBouquet}
+                className="btn-primary"
+                style={{ 
+                  background: 'var(--postal-red)', 
+                  borderColor: 'var(--postal-red)',
+                  color: 'white',
+                  width: '100%' 
+                }}
+              >
+                {deletingBouquet ? 'Tearing down bouquet...' : '🗑 Delete Bouquet & Start Anew'}
+              </button>
+              <div className="font-typewriter" style={{ fontSize: '0.62rem', color: 'var(--sepia-light)', textAlign: 'center', fontStyle: 'italic' }}>
+                *Deleting this will deactivate the link above permanently.
+              </div>
             </div>
           </div>
         </div>
